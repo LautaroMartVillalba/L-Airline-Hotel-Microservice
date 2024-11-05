@@ -1,8 +1,8 @@
 package ar.com.l_airline.repositories;
 
 import ar.com.l_airline.entities.hotel.Hotel;
-import ar.com.l_airline.location.City;
 import ar.com.l_airline.entities.hotel.enums.Room;
+import ar.com.l_airline.location.City;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,7 +1,7 @@
 package ar.com.l_airline.entities.hotel;
 
-import ar.com.l_airline.location.City;
 import ar.com.l_airline.entities.hotel.enums.Room;
+import ar.com.l_airline.location.City;
 import jakarta.persistence.*;
 import lombok.*;
 
