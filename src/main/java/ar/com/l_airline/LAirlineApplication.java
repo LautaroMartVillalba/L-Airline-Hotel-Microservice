@@ -9,5 +9,4 @@ public class LAirlineApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(LAirlineApplication.class, args);
 	}
-
 }
