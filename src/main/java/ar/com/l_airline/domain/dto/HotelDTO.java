@@ -1,7 +1,7 @@
-package ar.com.l_airline.entities.hotel;
+package ar.com.l_airline.domain.dto;
 
-import ar.com.l_airline.entities.hotel.enums.Room;
-import ar.com.l_airline.location.City;
+import ar.com.l_airline.domain.enums.Room;
+import ar.com.l_airline.domain.enums.City;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;

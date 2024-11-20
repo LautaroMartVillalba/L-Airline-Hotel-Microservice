@@ -1,9 +1,9 @@
 package ar.com.l_airline.controllers;
 
-import ar.com.l_airline.entities.hotel.Hotel;
-import ar.com.l_airline.entities.hotel.HotelDTO;
-import ar.com.l_airline.entities.hotel.enums.Room;
-import ar.com.l_airline.location.City;
+import ar.com.l_airline.domain.hotel.Hotel;
+import ar.com.l_airline.domain.dto.HotelDTO;
+import ar.com.l_airline.domain.enums.Room;
+import ar.com.l_airline.domain.enums.City;
 import ar.com.l_airline.services.HotelService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
