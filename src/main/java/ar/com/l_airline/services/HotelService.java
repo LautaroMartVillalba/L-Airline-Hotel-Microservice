@@ -6,6 +6,7 @@ import ar.com.l_airline.domain.enums.Room;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.ExistingObjectException;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
 import ar.com.l_airline.domain.enums.City;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundException;
 import ar.com.l_airline.repositories.HotelRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -45,19 +46,10 @@ public class HotelService {
                 && dto.getCity() == dbHotel.get().getCity()
                 && dto.getRoomType() == dbHotel.get().getRoomType()
                 && dto.getPricePerNight() == dbHotel.get().getPricePerNight()){
-            try {
-                throw new ExistingObjectException();
-            } catch (ExistingObjectException e) {
-                throw new RuntimeException(e);
-            }
+            throw new ExistingObjectException();
         }
-
         if (!validateHotel(dto)){
-            try {
-                throw new MissingDataException();
-            } catch (MissingDataException e) {
-                throw new RuntimeException(e);
-            }
+            throw new MissingDataException();
         }
 
         Hotel hotelSave = Hotel.builder()
@@ -74,11 +66,12 @@ public class HotelService {
      * @param id Identification number.
      * @return Hotel optional if it can found a record. Empty optional if id >= 0, or can't found a matching record.
      */
-    public Optional<Hotel> findHotelById(Long id){
-        if (id <= 0){
-            return Optional.empty();
+    public Hotel findHotelById(Long id){
+        if (id == null){
+            throw new MissingDataException();
         }
-        return repository.findById(id);
+
+        return repository.findById(id).orElseThrow(NotFoundException::new);
     }
 
     /**
@@ -87,10 +80,17 @@ public class HotelService {
      * @return List of Hotels if it can found some records. Empty List if it can't found.
      */
     public List<Hotel> findHotelByName(String name){
-        if (name.isBlank()){
-            return null;
+        if (name == null || name.isEmpty()){
+            throw new MissingDataException();
         }
-        return repository.findByNameContaining(name);
+
+        List<Hotel> result = repository.findByNameContaining(name);
+
+        if (result.isEmpty()){
+            throw new NotFoundException();
+        }
+
+        return result;
     }
 
     /**
@@ -100,9 +100,16 @@ public class HotelService {
      */
     public List<Hotel> findHotelByCity(City city){
         if (city == null){
-            return null;
+            throw new MissingDataException();
         }
-        return repository.findByCity(city);
+
+        List<Hotel> result = repository.findByCity(city);
+
+        if (result.isEmpty()){
+            throw new NotFoundException();
+        }
+
+        return result;
     }
 
     /**
@@ -112,9 +119,16 @@ public class HotelService {
      */
     public List<Hotel> findHotelByRoom(Room room){
         if (room == null){
-            return null;
+            throw new MissingDataException();
         }
-        return repository.findByRoomType(room);
+
+        List<Hotel> result = repository.findByRoomType(room);
+
+        if (result.isEmpty()){
+            throw new NotFoundException();
+        }
+
+        return result;
     }
 
     /**
@@ -124,10 +138,16 @@ public class HotelService {
      * @return List of Hotels if it can found some records. Null if the min or max values are null.
      */
     public List<Hotel> findHotelByPrice(double min, double max){
-        if (min <= 0 || max <= min){
-            return null;
+        if (min < 0 || max <= min){
+            throw new  MissingDataException();
         }
-        return repository.findByPricePerNightBetween(min, max);
+
+        List<Hotel> result = repository.findByPricePerNightBetween(min, max);
+
+        if (result.isEmpty()){
+            throw new NotFoundException();
+        }
+        return result;
     }
 
     /**
@@ -137,7 +157,7 @@ public class HotelService {
      * @return The persisted changes.
      */
     public Hotel updateHotel (Long id, HotelDTO dto){
-        Hotel findHotel = this.findHotelById(id).orElseThrow(() -> new RuntimeException("Hotel not found."));
+        Hotel findHotel = this.findHotelById(id);
 
         if (dto.getName() != null){
             findHotel.setName(dto.getName());
@@ -162,11 +182,8 @@ public class HotelService {
      * @return True if it can find and delete the Hotel. False if it can't.
      */
     public boolean deleteHotelById(Long id){
-        Optional<Hotel> findHotel = this.findHotelById(id);
-        if (findHotel.isEmpty()){
-            return false;
-        }
-        repository.deleteById(findHotel.get().getId());
+        Hotel findHotel = this.findHotelById(id);
+        repository.deleteById(findHotel.getId());
         return true;
     }
 }
