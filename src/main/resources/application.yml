@@ -16,7 +16,14 @@ spring:
       host: vault-custom
       port: 8200
       scheme: http
-      authentication: TOKEN
+      authentication : TOKEN
+      kv:
+        backend: kv
+        default-context: database
+        application-name: database
+        enabled: true
+  config:
+    import: vault://
   flyway:
     locations: classpath:/db/migration
 
