@@ -34,8 +34,7 @@ eureka:
   client:
     fetch-registry: true
 
-resilience4j:
-  circuitbreaker:
+resilience4j.circuitbreaker:
     instances:
       hotelBreaker:
         registerHealthIndicator: true
@@ -48,3 +47,18 @@ resilience4j:
         eventConsumerBufferSize: 10
         slowCallRateThreshold: 50
         slowCallDurationThreshold: 5s
+
+resilience4j.ratelimiter:
+  instances:
+    post-delete-patch:
+      limitForPeriod: 30
+      limitRefreshPeriod: 1s
+      timeoutDuration: 500
+      registerHealthIndicator: true
+      eventConsumerBufferSize: 50
+    gets:
+      limitForPeriod: 2000
+      limitRefreshPeriod: 1s
+      timeoutDuration: 500
+      registerHealthIndicator: true
+      eventConsumerBufferSize: 100
