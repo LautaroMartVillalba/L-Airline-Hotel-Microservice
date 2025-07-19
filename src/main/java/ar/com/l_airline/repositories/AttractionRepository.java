@@ -1,0 +1,20 @@
+package ar.com.l_airline.repositories;
+
+import ar.com.l_airline.domain.entities.Attraction;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalTime;
+import java.util.List;
+
+@Repository
+public interface AttractionRepository extends JpaRepository<Attraction, Long> {
+
+    List<Attraction> findByNameContaining(String name);
+    List<Attraction> findByDescriptionContaining(String description);
+    List<Attraction> findByPeopleCapacityBetween(int min, int max);
+    List<Attraction> findByOpenAtGreaterThan(LocalTime open);
+    List<Attraction> findByCloseAtLessThan(LocalTime close);
+    List<Attraction> findByOpenAtGreaterThanEqualAndCloseAtLessThanEqual(LocalTime open, LocalTime close);
+
+}
