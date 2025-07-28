@@ -1,5 +1,6 @@
 package ar.com.l_airline.services;
 
+import ar.com.l_airline.domain.dto.PersonDTO;
 import ar.com.l_airline.domain.dto.ReservationDTO;
 import ar.com.l_airline.domain.entities.Person;
 import ar.com.l_airline.domain.entities.Reservation;
@@ -10,9 +11,7 @@ import ar.com.l_airline.repositories.RoomRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.print.attribute.standard.MediaSize;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,12 +20,12 @@ import java.util.List;
 public class ReservationService {
 
     private final ReservationRepository reservationRepository;
-    private final PersonRepository personRepository;
+    private final PersonService personService;
     private final RoomRepository roomRepository;
 
-    public ReservationService(ReservationRepository reservationRepository, PersonRepository personRepository, RoomRepository roomRepository) {
+    public ReservationService(ReservationRepository reservationRepository, PersonService personService, RoomRepository roomRepository) {
         this.reservationRepository = reservationRepository;
-        this.personRepository = personRepository;
+        this.personService = personService;
         this.roomRepository = roomRepository;
     }
 
@@ -75,16 +74,32 @@ public class ReservationService {
     }
 
     @Transactional
-    public Reservation createReservation(ReservationDTO dto) {
-        validateReservation(dto);
+    public Reservation createReservation(ReservationDTO reservationDTO, PersonDTO personDTO) {
+        validateReservation(reservationDTO);
+
+        if (reservationDTO.getClientId() == null || personService.getPersonByIdObject(reservationDTO.getClientId()).isEmpty()){
+            Person newPerson = personService.createPerson(personDTO);
+
+            Reservation reservation = Reservation.builder()
+                .numberOfPeople(reservationDTO.getNumberOfPeople())
+                .numberOfNights(reservationDTO.getNumberOfNights())
+                .startAt(reservationDTO.getStartAt())
+                .endAt(reservationDTO.getEndAt())
+                .client(newPerson)
+                .roomBooked(roomRepository.findById(reservationDTO.getRoomBookedId()).orElseThrow()).build();
+
+            reservationRepository.save(reservation);
+
+            return reservation;
+        }
 
         Reservation reservation = Reservation.builder()
-                .numberOfPeople(dto.getNumberOfPeople())
-                .numberOfNights(dto.getNumberOfNights())
-                .startAt(dto.getStartAt())
-                .endAt(dto.getEndAt())
-                .client(personRepository.findById(dto.getClientId()).orElseThrow())
-                .roomBooked(roomRepository.findById(dto.getRoomBookedId()).orElseThrow()).build();
+                .numberOfPeople(reservationDTO.getNumberOfPeople())
+                .numberOfNights(reservationDTO.getNumberOfNights())
+                .startAt(reservationDTO.getStartAt())
+                .endAt(reservationDTO.getEndAt())
+                .client(personService.getPersonByIdObject(reservationDTO.getClientId()).get())
+                .roomBooked(roomRepository.findById(reservationDTO.getRoomBookedId()).orElseThrow()).build();
 
         reservationRepository.save(reservation);
 
@@ -310,7 +325,7 @@ public class ReservationService {
 
         Reservation reservationInDB = reservationRepository.findById(reservationId).orElseThrow();
         if (dto.getClientId() > 0) {
-            Person client = personRepository.findById(dto.getClientId()).orElseThrow();
+            Person client = personService.getPersonByIdObject(dto.getClientId()).orElseThrow();
             reservationInDB.setClient(client);
         }
         if (dto.getRoomBookedId() > 0) {
