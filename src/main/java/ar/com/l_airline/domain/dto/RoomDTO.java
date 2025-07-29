@@ -23,5 +23,7 @@ public class RoomDTO{
     private RoomType roomType;
     @Enumerated(EnumType.STRING)
     private RoomState state;
+    private Long hotelId;
+    private Long reservationId;
 
 }

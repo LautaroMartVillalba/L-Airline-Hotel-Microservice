@@ -64,6 +64,24 @@ public class RoomService {
         }
     }
 
+    public List<RoomDTO> parseFromRoomListToRoomDTOList(List<Room> rooms){
+        List<RoomDTO> response = new ArrayList<>();
+
+        rooms.forEach(room -> {
+            RoomDTO transfer = RoomDTO.builder()
+                    .id(room.getId())
+                    .floor(room.getFloor())
+                    .peopleCapacity(room.getPeopleCapacity())
+                    .numberOfBeds(room.getNumberOfBeds())
+                    .bedType(room.getBedType())
+                    .state(room.getState()).build();
+
+            response.add(transfer);
+        });
+
+        return response;
+    }
+
     /**
      * Creates and saves a new Room entity in the database.
      * The room is validated before persistence.
@@ -128,21 +146,12 @@ public class RoomService {
         }
 
         List<Room> result = repository.findByNumberOfBeds(number);
-        List<RoomDTO> responseList = new ArrayList<>();
 
-        result.forEach(room -> {
-            RoomDTO transfer = RoomDTO.builder()
-                    .id(room.getId())
-                    .floor(room.getFloor())
-                    .peopleCapacity(room.getPeopleCapacity())
-                    .numberOfBeds(room.getNumberOfBeds())
-                    .bedType(room.getBedType())
-                    .state(room.getState()).build();
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
 
-            responseList.add(transfer);
-        });
-
-        return responseList;
+        return parseFromRoomListToRoomDTOList(result);
     }
 
     /**
@@ -153,21 +162,12 @@ public class RoomService {
      */
     public List<RoomDTO> getRoomsByBedsTypes(BedsType bedsType){
         List<Room> result = repository.findByBedType(bedsType);
-        List<RoomDTO> responseList = new ArrayList<>();
 
-        result.forEach(room -> {
-            RoomDTO transfer = RoomDTO.builder()
-                    .id(room.getId())
-                    .floor(room.getFloor())
-                    .peopleCapacity(room.getPeopleCapacity())
-                    .numberOfBeds(room.getNumberOfBeds())
-                    .bedType(room.getBedType())
-                    .state(room.getState()).build();
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
 
-            responseList.add(transfer);
-        });
-
-        return responseList;
+        return parseFromRoomListToRoomDTOList(result);
     }
 
     /**
@@ -181,21 +181,12 @@ public class RoomService {
             throw new RuntimeException("A room only can accommodate between 1 and 4 people over 13 years old.");
         }
         List<Room> result = repository.findByPeopleCapacity(people);
-        List<RoomDTO> responseList = new ArrayList<>();
 
-        result.forEach(room -> {
-            RoomDTO transfer = RoomDTO.builder()
-                    .id(room.getId())
-                    .floor(room.getFloor())
-                    .peopleCapacity(room.getPeopleCapacity())
-                    .numberOfBeds(room.getNumberOfBeds())
-                    .bedType(room.getBedType())
-                    .state(room.getState()).build();
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
 
-            responseList.add(transfer);
-        });
-
-        return responseList;
+        return parseFromRoomListToRoomDTOList(result);
     }
 
     /**
@@ -210,21 +201,12 @@ public class RoomService {
         }
 
         List<Room> result = repository.findByRoomType(roomType);
-        List<RoomDTO> responseList = new ArrayList<>();
 
-        result.forEach(room -> {
-            RoomDTO transfer = RoomDTO.builder()
-                    .id(room.getId())
-                    .floor(room.getFloor())
-                    .peopleCapacity(room.getPeopleCapacity())
-                    .numberOfBeds(room.getNumberOfBeds())
-                    .bedType(room.getBedType())
-                    .state(room.getState()).build();
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
 
-            responseList.add(transfer);
-        });
-
-        return responseList;
+        return parseFromRoomListToRoomDTOList(result);
     }
 
     /**
@@ -239,21 +221,12 @@ public class RoomService {
         }
 
         List<Room> result = repository.findByState(state);
-        List<RoomDTO> responseList = new ArrayList<>();
 
-        result.forEach(room -> {
-            RoomDTO transfer = RoomDTO.builder()
-                    .id(room.getId())
-                    .floor(room.getFloor())
-                    .peopleCapacity(room.getPeopleCapacity())
-                    .numberOfBeds(room.getNumberOfBeds())
-                    .bedType(room.getBedType())
-                    .state(room.getState()).build();
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
 
-            responseList.add(transfer);
-        });
-
-        return responseList;
+        return parseFromRoomListToRoomDTOList(result);
     }
 
     /**
@@ -275,23 +248,7 @@ public class RoomService {
             return Collections.emptyList();
         }
 
-        List<RoomDTO> retrieve = new ArrayList<>();
-
-        result.forEach(room -> {
-            RoomDTO dto = RoomDTO.builder()
-                    .floor(room.getFloor())
-                    .numberOfBeds(room.getNumberOfBeds())
-                    .bedType(room.getBedType())
-                    .peopleCapacity(room.getPeopleCapacity())
-                    .roomType(room.getRoomType())
-                    .state(room.getState())
-                    .hotelId(room.getHotel().getId())
-                    .reservationId(room.getReservation().getId()).build();
-
-            retrieve.add(dto);
-        });
-
-        return retrieve;
+        return parseFromRoomListToRoomDTOList(result);
     }
 
     /**
@@ -313,23 +270,7 @@ public class RoomService {
             return Collections.emptyList();
         }
 
-        List<RoomDTO> retrieve = new ArrayList<>();
-
-        result.forEach(room -> {
-            RoomDTO dto = RoomDTO.builder()
-                    .floor(room.getFloor())
-                    .numberOfBeds(room.getNumberOfBeds())
-                    .bedType(room.getBedType())
-                    .peopleCapacity(room.getPeopleCapacity())
-                    .roomType(room.getRoomType())
-                    .state(room.getState())
-                    .hotelId(room.getHotel().getId())
-                    .reservationId(room.getReservation().getId()).build();
-
-            retrieve.add(dto);
-        });
-
-        return retrieve;
+        return parseFromRoomListToRoomDTOList(result);
     }
 
     /**
