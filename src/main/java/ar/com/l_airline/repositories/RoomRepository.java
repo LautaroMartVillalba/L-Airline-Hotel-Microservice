@@ -5,6 +5,7 @@ import ar.com.l_airline.domain.enums.BedsType;
 import ar.com.l_airline.domain.enums.RoomState;
 import ar.com.l_airline.domain.enums.RoomType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,10 +18,14 @@ import java.util.List;
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {
 
-    public List<Room> findByNumberOfBeds(int beds);
-    public List<Room> findByBedType(BedsType bedType);
-    public List<Room> findByPeopleCapacity(int numberOfPeople);
-    public List<Room> findByRoomType(RoomType roomType);
-    public List<Room> findByState(RoomState state);
+    List<Room> findByNumberOfBeds(int beds);
+    List<Room> findByBedType(BedsType bedType);
+    List<Room> findByPeopleCapacity(int numberOfPeople);
+    List<Room> findByRoomType(RoomType roomType);
+    List<Room> findByState(RoomState state);
+    @Query("SELECT r FROM Room r JOIN r.hotel h WHERE h.id = :id")
+    List<Room> findByHotel(Long id);
+    @Query("SELECT r FROM Room r JOIN r.reservation res WHERE res.id = :id")
+    List<Room> findByReservation(Long id);
 
 }

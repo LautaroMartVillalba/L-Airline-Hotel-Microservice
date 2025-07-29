@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -50,9 +51,11 @@ public class RoomService {
         if (room.getRoomType() == null){
             throw new RuntimeException("Room category cannot be null.");
         }
+        //If you see a warning here, it is because of your IDE.
         if (room.getBedType().equals(BedsType.KING_BED) && room.getNumberOfBeds() != 1){
             throw new RuntimeException("Only one king bed per room.");
         }
+        //If you see a warning here, it is because of your IDE.
         if (room.getBedType().equals(BedsType.QUEEN_BED) && room.getNumberOfBeds() != 1){
             throw new RuntimeException("Only one queen bed per room.");
         }
@@ -84,8 +87,6 @@ public class RoomService {
 
         return newRoom;
     }
-
-    //TODO metodo que cambie los parámetros a lo compatible para estar reservada
 
     /**
      * Retrieves a room by its ID and returns a RoomDTO response.
@@ -256,6 +257,82 @@ public class RoomService {
     }
 
     /**
+     * Retrieves a list of RoomDTOs associated with a specific hotel ID.
+     *
+     * @param hotelId the ID of the hotel to filter rooms by
+     * @return a list of RoomDTOs that belong to the specified hotel;
+     *         returns an empty list if no rooms are found
+     * @throws RuntimeException if the provided hotelId is null
+     */
+    List<RoomDTO> getByHotelId(Long hotelId){
+        if(hotelId == null){
+            throw new RuntimeException("Id cannot be null");
+        }
+
+        List<Room> result = repository.findByHotel(hotelId);
+
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        List<RoomDTO> retrieve = new ArrayList<>();
+
+        result.forEach(room -> {
+            RoomDTO dto = RoomDTO.builder()
+                    .floor(room.getFloor())
+                    .numberOfBeds(room.getNumberOfBeds())
+                    .bedType(room.getBedType())
+                    .peopleCapacity(room.getPeopleCapacity())
+                    .roomType(room.getRoomType())
+                    .state(room.getState())
+                    .hotelId(room.getHotel().getId())
+                    .reservationId(room.getReservation().getId()).build();
+
+            retrieve.add(dto);
+        });
+
+        return retrieve;
+    }
+
+    /**
+     * Retrieves a list of RoomDTOs associated with a specific reservation ID.
+     *
+     * @param reservationId the ID of the reservation to filter rooms by
+     * @return a list of RoomDTOs that are linked to the specified reservation;
+     *         returns an empty list if no rooms are found
+     * @throws RuntimeException if the provided reservationId is null
+     */
+    List<RoomDTO> getByReservationId(Long reservationId){
+        if(reservationId == null){
+            throw new RuntimeException("Id cannot be null");
+        }
+
+        List<Room> result = repository.findByReservation(reservationId);
+
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        List<RoomDTO> retrieve = new ArrayList<>();
+
+        result.forEach(room -> {
+            RoomDTO dto = RoomDTO.builder()
+                    .floor(room.getFloor())
+                    .numberOfBeds(room.getNumberOfBeds())
+                    .bedType(room.getBedType())
+                    .peopleCapacity(room.getPeopleCapacity())
+                    .roomType(room.getRoomType())
+                    .state(room.getState())
+                    .hotelId(room.getHotel().getId())
+                    .reservationId(room.getReservation().getId()).build();
+
+            retrieve.add(dto);
+        });
+
+        return retrieve;
+    }
+
+    /**
      * Updates modifiable fields of a room based on the provided DTO.
      * Handles bed type and number validation consistency.
      *
@@ -293,8 +370,6 @@ public class RoomService {
         repository.save(room);
         return room;
     }
-
-    //TODO metodos que cambien automáticamente el estado de una habitación
 
     /**
      * Deletes a room by its ID only if it is currently FREE.
