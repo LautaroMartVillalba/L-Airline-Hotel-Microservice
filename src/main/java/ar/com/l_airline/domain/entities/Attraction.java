@@ -6,6 +6,11 @@ import lombok.*;
 import java.sql.Time;
 import java.time.LocalTime;
 
+/**
+ * Entity representing an attraction that belongs to a hotel.
+ * Contains information about the attraction's name, description,
+ * operating hours, capacity, and the associated hotel.
+ */
 @Entity
 @Table(name = "entity_attraction")
 @AllArgsConstructor

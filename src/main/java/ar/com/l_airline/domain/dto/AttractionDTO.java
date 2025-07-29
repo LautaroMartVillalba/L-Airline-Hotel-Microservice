@@ -1,12 +1,16 @@
 package ar.com.l_airline.domain.dto;
 
+import ar.com.l_airline.domain.entities.Attraction;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalTime;
 
-
+/**
+ * Data Transfer Object (DTO) for the {@link Attraction} entity.
+ * Used to transfer attraction data between application layers without exposing the entity directly.
+ */
 @AllArgsConstructor
 @Builder
 @Data
