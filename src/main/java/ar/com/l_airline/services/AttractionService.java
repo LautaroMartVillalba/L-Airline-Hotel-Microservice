@@ -7,10 +7,14 @@ import ar.com.l_airline.repositories.AttractionRepository;
 import ar.com.l_airline.repositories.HotelRepository;
 import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Attr;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class AttractionService {
@@ -54,6 +58,25 @@ public class AttractionService {
         }
     }
 
+    public List<AttractionDTO> parseFromAttractionListToAttractionDTOList(List<Attraction> list){
+        List<AttractionDTO> response = new ArrayList<>();
+
+        list.forEach(attraction -> {
+            AttractionDTO dto = AttractionDTO.builder()
+                    .name(attraction.getName())
+                    .description(attraction.getDescription())
+                    .peopleCapacity(attraction.getPeopleCapacity())
+                    .openAt(attraction.getOpenAt())
+                    .closeAt(attraction.getCloseAt())
+                    .hotelId(attraction.getHotel().getId()).build();
+
+            response.add(dto);
+        });
+
+        return response;
+    }
+
+    @Transactional
     public Attraction createAttraction(AttractionDTO dto, Long hotelId) {
         validateAttraction(dto);
 
@@ -71,54 +94,116 @@ public class AttractionService {
         return attraction;
     }
 
-    public List<Attraction> getAttractionByName(String name) {
+    public AttractionDTO getAttractionByIdDTO(Long id) {
+        if (id <= 0) {
+            throw new RuntimeException("Id cannot be null.");
+        }
+
+        Optional<Attraction> attractionInDB = attractionRepository.findById(id);
+        if (attractionInDB.isEmpty()){
+            throw new RuntimeException("Attraction cannot be found by id.");
+        }
+        Attraction attraction = attractionInDB.get();
+        return AttractionDTO.builder()
+                .name(attraction.getName())
+                .description(attraction.getDescription())
+                .peopleCapacity(attraction.getPeopleCapacity())
+                .openAt(attraction.getOpenAt())
+                .closeAt(attraction.getCloseAt()).build();
+    }
+    public Optional<Attraction> getAttractionByIdObject(Long id) {
+        if (id <= 0) {
+            throw new RuntimeException("Id cannot be null.");
+        }
+
+        return attractionRepository.findById(id);
+    }
+
+    public List<AttractionDTO> getAttractionByName(String name) {
         if (name.isBlank()) {
             throw new RuntimeException("Name parameter cannot be empty.");
         }
 
-        return attractionRepository.findByNameContaining(name);
+        List<Attraction> result = attractionRepository.findByNameContaining(name);
+
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        return parseFromAttractionListToAttractionDTOList(result);
     }
 
-    List<Attraction> getAttractionByDesc(String desc) {
+    List<AttractionDTO> getAttractionByDesc(String desc) {
         if (desc.isBlank()) {
             throw new RuntimeException("Description cannot be null.");
         }
 
-        return attractionRepository.findByDescriptionContaining(desc);
+        List<Attraction> result = attractionRepository.findByDescriptionContaining(desc);
+
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        return parseFromAttractionListToAttractionDTOList(result);
     }
 
-    List<Attraction> getAttractionByCapacity(int min, int max) {
+    List<AttractionDTO> getAttractionByCapacity(int min, int max) {
         if (min <= 0 || min > max || max <= 0) {
             throw new RuntimeException("Insert valid minimum and maximum values.");
         }
 
-        return attractionRepository.findByPeopleCapacityBetween(min, max);
+        List<Attraction> result = attractionRepository.findByPeopleCapacityBetween(min, max);
+
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        return parseFromAttractionListToAttractionDTOList(result);
     }
 
-    List<Attraction> getAttractionByOpening(LocalTime time) {
+    List<AttractionDTO> getAttractionByOpening(LocalTime time) {
         if (time == null) {
             throw new RuntimeException("Invalid time format.");
         }
 
-        return attractionRepository.findByOpenAtGreaterThan(time);
+        List<Attraction> result = attractionRepository.findByOpenAtGreaterThan(time);
+
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        return parseFromAttractionListToAttractionDTOList(result);
     }
 
-    List<Attraction> getAttractionByEnding(LocalTime time) {
+    List<AttractionDTO> getAttractionByEnding(LocalTime time) {
         if (time == null) {
             throw new RuntimeException("Invalid time format.");
         }
 
-        return attractionRepository.findByCloseAtLessThan(time);
+        List<Attraction> result = attractionRepository.findByCloseAtLessThan(time);
+
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        return parseFromAttractionListToAttractionDTOList(result);
     }
 
-    List<Attraction> getAttractionBetweenOpeningAndEnding(LocalTime opening, LocalTime ending) {
+    List<AttractionDTO> getAttractionBetweenOpeningAndEnding(LocalTime opening, LocalTime ending) {
         if (opening == null || ending == null) {
             throw new RuntimeException("Invalid time format.");
         }
 
-        return attractionRepository.findByOpenAtGreaterThanEqualAndCloseAtLessThanEqual(opening, ending);
+        List<Attraction> result = attractionRepository.findByOpenAtGreaterThanEqualAndCloseAtLessThanEqual(opening, ending);
+
+        if (result.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        return parseFromAttractionListToAttractionDTOList(result);
     }
 
+    @Transactional
     Attraction updateAttraction(Long id, AttractionDTO dto) {
         Attraction attractionInDB = attractionRepository.findById(id).orElseThrow();
 
@@ -144,6 +229,7 @@ public class AttractionService {
         return attractionInDB;
     }
 
+    @Transactional
     public void deleteAttraction(Long id) {
         Attraction attractionInDB = attractionRepository.findById(id).orElseThrow();
 

@@ -2,6 +2,7 @@ package ar.com.l_airline.repositories;
 
 import ar.com.l_airline.domain.entities.Attraction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalTime;
@@ -16,5 +17,7 @@ public interface AttractionRepository extends JpaRepository<Attraction, Long> {
     List<Attraction> findByOpenAtGreaterThan(LocalTime open);
     List<Attraction> findByCloseAtLessThan(LocalTime close);
     List<Attraction> findByOpenAtGreaterThanEqualAndCloseAtLessThanEqual(LocalTime open, LocalTime close);
+    @Query("SELECT a FROM Attraction a JOIN a.hotel h WHERE h.id = :id")
+    List<Attraction> findByHotel(Long id);
 
 }

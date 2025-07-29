@@ -18,5 +18,6 @@ public class AttractionDTO {
     private int peopleCapacity;
     private LocalTime openAt;
     private LocalTime closeAt;
+    private Long hotelId;
 
 }
