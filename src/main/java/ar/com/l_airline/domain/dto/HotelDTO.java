@@ -1,13 +1,14 @@
 package ar.com.l_airline.domain.dto;
 
-import ar.com.l_airline.domain.enums.Room;
-import ar.com.l_airline.domain.enums.City;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import ar.com.l_airline.domain.entities.Attraction;
+import ar.com.l_airline.domain.entities.Room;
+import ar.com.l_airline.domain.entities.Benefit;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 @AllArgsConstructor
 @Getter
@@ -16,9 +17,11 @@ import lombok.Setter;
 public class HotelDTO {
     private Long id;
     private String name;
-    @Enumerated(EnumType.STRING)
-    private City city;
-    @Enumerated(EnumType.STRING)
-    private Room roomType;
-    private double pricePerNight;
+    private double stars;
+    private int totalRooms;
+    private int freeRooms;
+    private int reservedRooms;
+    private List<Long> roomsId;
+    private List<Long> benefitsId;
+    private List<Long> attractionsId;
 }

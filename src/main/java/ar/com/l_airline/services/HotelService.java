@@ -1,189 +1,332 @@
 package ar.com.l_airline.services;
 
-import ar.com.l_airline.domain.hotel.Hotel;
+import ar.com.l_airline.domain.dto.AttractionDTO;
+import ar.com.l_airline.domain.dto.BenefitDTO;
 import ar.com.l_airline.domain.dto.HotelDTO;
-import ar.com.l_airline.domain.enums.Room;
-import ar.com.l_airline.exceptionHandler.custom_exceptions.ExistingObjectException;
-import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
-import ar.com.l_airline.domain.enums.City;
-import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundException;
+import ar.com.l_airline.domain.dto.RoomDTO;
+import ar.com.l_airline.domain.entities.Attraction;
+import ar.com.l_airline.domain.entities.Benefit;
+import ar.com.l_airline.domain.entities.Hotel;
+import ar.com.l_airline.domain.entities.Room;
 import ar.com.l_airline.repositories.HotelRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class HotelService {
 
-    @Autowired
-    private HotelRepository repository;
+    private final HotelRepository hotelRepositorytory;
+    private final RoomService roomService;
+    private final BenefitService benefitService;
+    private final AttractionService attractionService;
 
-    /**
-     * Check if any data is blank or null.
-     * @param dto Hotel data.
-     * @return False if any data is blank or null. True if not.
-     */
-    private boolean validateHotel(HotelDTO dto){
-        return !dto.getName().isBlank()
-                && !dto.getRoomType().name().isBlank()
-                && !dto.getCity().name().isBlank()
-                && !(dto.getPricePerNight() <= 0);
+    public HotelService(HotelRepository repository, RoomService roomService, BenefitService benefitService, AttractionService attractionService) {
+        this.hotelRepositorytory = repository;
+        this.roomService = roomService;
+        this.benefitService = benefitService;
+        this.attractionService = attractionService;
     }
 
-    /**
-     * Persist a new Hotel record in the DataBase, checking if exists a duplicated record.
-     * @param dto Hotel data to persist.
-     * @return Persisted hotel. Null if exists one record with same data.
-     */
-    public Hotel createHotel (HotelDTO dto){
-        Optional<Hotel> dbHotel = repository.findByNameAndCityAndRoomType(dto.getName(),
-                                                                          dto.getCity(),
-                                                                          dto.getRoomType());
-        if (dbHotel.isPresent()
-                && dto.getName().equals(dbHotel.get().getName())
-                && dto.getCity() == dbHotel.get().getCity()
-                && dto.getRoomType() == dbHotel.get().getRoomType()
-                && dto.getPricePerNight() == dbHotel.get().getPricePerNight()){
-            throw new ExistingObjectException();
+    private void validateHotel(HotelDTO dto){
+        if(dto.getName().isBlank()){
+            throw new RuntimeException("Hotel name cannot be null.");
         }
-        if (!validateHotel(dto)){
-            throw new MissingDataException();
+        if (dto.getTotalRooms() <1){
+            throw new RuntimeException("A hotel must have at leas one room.");
         }
-
-        Hotel hotelSave = Hotel.builder()
-                               .name(dto.getName())
-                               .city(dto.getCity())
-                               .roomType(dto.getRoomType())
-                               .pricePerNight(dto.getPricePerNight()).build();
-         repository.save(hotelSave);
-         return hotelSave;
+        if (dto.getFreeRooms() > dto.getTotalRooms()){
+            throw new RuntimeException("Free rooms cannot be more than total rooms.");
+        }
+        if (dto.getReservedRooms() > dto.getTotalRooms()){
+            throw new RuntimeException("Reserved rooms cannot be more than total rooms.");
+        }
+        if ((dto.getReservedRooms() + dto.getFreeRooms()) > dto.getTotalRooms()){
+            throw new RuntimeException("The sum of free and reserved rooms cannot be more than total rooms.");
+        }
+        if (dto.getRoomsId().isEmpty()){
+            throw new RuntimeException("A Hotel must have at least one room.");
+        }
+    }
+    private void validateHotel(Hotel obj){
+        if(obj.getName().isBlank()){
+            throw new RuntimeException("Hotel name cannot be null.");
+        }
+        if (obj.getTotalRooms() <1){
+            throw new RuntimeException("A hotel must have at leas one room.");
+        }
+        if (obj.getFreeRooms() > obj.getTotalRooms()){
+            throw new RuntimeException("Free rooms cannot be more than total rooms.");
+        }
+        if (obj.getReservedRooms() > obj.getTotalRooms()){
+            throw new RuntimeException("Reserved rooms cannot be more than total rooms.");
+        }
+        if ((obj.getReservedRooms() + obj.getFreeRooms()) > obj.getTotalRooms()){
+            throw new RuntimeException("The sum of free and reserved rooms cannot be more than total rooms.");
+        }
     }
 
-    /**
-     * Search one Hotel record in the DataBase by his id.
-     * @param id Identification number.
-     * @return Hotel optional if it can found a record. Empty optional if id >= 0, or can't found a matching record.
-     */
-    public Hotel findHotelById(Long id){
+    @Transactional
+    public Hotel createHotel (HotelDTO hotelDTO, BenefitDTO benefitDTO){
+        validateHotel(hotelDTO);
+
+        List<Room> rooms = new ArrayList<>();
+        hotelDTO.getRoomsId().forEach(room -> {
+            Room roomInDB = roomService.getRoomById(room);
+
+            rooms.add(roomInDB);
+        });
+
+        Hotel hotel = Hotel.builder()
+                .name(hotelDTO.getName())
+                .stars(hotelDTO.getStars())
+                .totalRooms(hotelDTO.getTotalRooms())
+                .freeRooms(hotelDTO.getTotalRooms())
+                .rooms(rooms)
+                .reservedRooms(0)
+                .build();
+
+        List<Attraction> attractionsList = new ArrayList<>();
+        if (!hotelDTO.getAttractionsId().isEmpty()){
+            hotelDTO.getAttractionsId().forEach(attraction -> {
+                Attraction attractionInDb = attractionService.getAttractionByIdObject(attraction).orElseThrow();
+
+                attractionsList.add(attractionInDb);
+            });
+        }
+        hotel.setAttractions(attractionsList);
+
+        List<Benefit> benefitList = new ArrayList<>();
+        if (!hotelDTO.getBenefitsId().isEmpty()){
+            hotelDTO.getBenefitsId().forEach(benefit -> {
+                Benefit benefitInDb = benefitService.getBenefitById(benefit);
+
+                benefitList.add(benefitInDb);
+            });
+        }
+        hotel.setBenefits(benefitList);
+
+        hotelRepositorytory.save(hotel);
+
+        return hotel;
+    }
+
+    public HotelDTO getHotelByIdDTO(Long id){
+        if (id <= 0){
+            throw new RuntimeException("Id cannot be null");
+        }
+
+        Hotel hotelInDb = hotelRepositorytory.findById(id).orElseThrow();
+
+        List<Long> roomIdList = new ArrayList<>();
+        List<Long> attractionIdList = new ArrayList<>();
+        List<Long> benefitsIdList = new ArrayList<>();
+
+        hotelInDb.getRooms().forEach(room -> roomIdList.add(room.getId()));
+        hotelInDb.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
+        hotelInDb.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
+
+        return HotelDTO.builder()
+                .name(hotelInDb.getName())
+                .stars(hotelInDb.getStars())
+                .freeRooms(hotelInDb.getFreeRooms())
+                .roomsId(roomIdList)
+                .attractionsId(attractionIdList)
+                .benefitsId(benefitsIdList)
+                .build();
+    }
+    public Hotel getHotelByIdObject(Long id){
+        if (id <= 0){
+            throw new RuntimeException("Id cannot be null");
+        }
+
+        return hotelRepositorytory.findById(id).orElseThrow();
+    }
+
+    public List<HotelDTO> getHotelByStars(double stars){
+        if (stars <= 0){
+            throw new RuntimeException("Stars qualification cannot be less than zero.");
+        }
+
+        List<Hotel> hotelsInDb = hotelRepositorytory.findByStars(stars);
+        List<HotelDTO> retrieveList = new ArrayList<>();
+
+        if (hotelsInDb.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        hotelsInDb.forEach(hotel -> {
+            List<Long> roomIdList = new ArrayList<>();
+            List<Long> attractionIdList = new ArrayList<>();
+            List<Long> benefitsIdList = new ArrayList<>();
+
+            hotel.getRooms().forEach(room -> roomIdList.add(room.getId()));
+            hotel.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
+            hotel.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
+
+            HotelDTO dto = HotelDTO.builder()
+                    .name(hotel.getName())
+                    .stars(hotel.getStars())
+                    .reservedRooms(hotel.getReservedRooms())
+                    .totalRooms(hotel.getTotalRooms())
+                    .freeRooms(hotel.getFreeRooms())
+                    .roomsId(roomIdList)
+                    .attractionsId(attractionIdList)
+                    .benefitsId(benefitsIdList).build();
+
+            retrieveList.add(dto);
+        });
+
+        return retrieveList;
+    }
+
+    public List<HotelDTO> getHotelByName(String name){
+        if (name.isBlank()){
+            throw new RuntimeException("Name cannot be null.");
+        }
+
+        List<Hotel> hotelsInDb = hotelRepositorytory.findByNameContaining(name);
+        List<HotelDTO> retrieveList = new ArrayList<>();
+
+        if (hotelsInDb.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        hotelsInDb.forEach(hotel -> {
+            List<Long> roomIdList = new ArrayList<>();
+            List<Long> attractionIdList = new ArrayList<>();
+            List<Long> benefitsIdList = new ArrayList<>();
+
+            hotel.getRooms().forEach(room -> roomIdList.add(room.getId()));
+            hotel.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
+            hotel.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
+
+            HotelDTO dto = HotelDTO.builder()
+                    .name(hotel.getName())
+                    .stars(hotel.getStars())
+                    .reservedRooms(hotel.getReservedRooms())
+                    .totalRooms(hotel.getTotalRooms())
+                    .freeRooms(hotel.getFreeRooms())
+                    .roomsId(roomIdList)
+                    .attractionsId(attractionIdList)
+                    .benefitsId(benefitsIdList).build();
+
+            retrieveList.add(dto);
+        });
+
+        return retrieveList;
+    }
+
+    public List<HotelDTO> getHotelByBenefits(String benefitsName){
+        if (benefitsName.isBlank()){
+            throw new RuntimeException("Name cannot be null.");
+        }
+
+        List<Hotel> hotelsInDb = hotelRepositorytory.findByBenefits(benefitsName);
+        List<HotelDTO> retrieveList = new ArrayList<>();
+
+        if (hotelsInDb.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        hotelsInDb.forEach(hotel -> {
+            List<Long> roomIdList = new ArrayList<>();
+            List<Long> attractionIdList = new ArrayList<>();
+            List<Long> benefitsIdList = new ArrayList<>();
+
+            hotel.getRooms().forEach(room -> roomIdList.add(room.getId()));
+            hotel.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
+            hotel.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
+
+            HotelDTO dto = HotelDTO.builder()
+                    .name(hotel.getName())
+                    .stars(hotel.getStars())
+                    .reservedRooms(hotel.getReservedRooms())
+                    .totalRooms(hotel.getTotalRooms())
+                    .freeRooms(hotel.getFreeRooms())
+                    .roomsId(roomIdList)
+                    .attractionsId(attractionIdList)
+                    .benefitsId(benefitsIdList).build();
+
+            retrieveList.add(dto);
+        });
+
+        return retrieveList;
+    }
+
+    public List<HotelDTO> getHotelByAttraction(String attractionName){
+        if (attractionName.isBlank()){
+            throw new RuntimeException("Name cannot be null.");
+        }
+
+        List<Hotel> hotelsInDb = hotelRepositorytory.findByBenefits(attractionName);
+        List<HotelDTO> retrieveList = new ArrayList<>();
+
+        if (hotelsInDb.isEmpty()){
+            return Collections.emptyList();
+        }
+
+        hotelsInDb.forEach(hotel -> {
+            List<Long> roomIdList = new ArrayList<>();
+            List<Long> attractionIdList = new ArrayList<>();
+            List<Long> benefitsIdList = new ArrayList<>();
+
+            hotel.getRooms().forEach(room -> roomIdList.add(room.getId()));
+            hotel.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
+            hotel.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
+
+            HotelDTO dto = HotelDTO.builder()
+                    .name(hotel.getName())
+                    .stars(hotel.getStars())
+                    .reservedRooms(hotel.getReservedRooms())
+                    .totalRooms(hotel.getTotalRooms())
+                    .freeRooms(hotel.getFreeRooms())
+                    .roomsId(roomIdList)
+                    .attractionsId(attractionIdList)
+                    .benefitsId(benefitsIdList).build();
+
+            retrieveList.add(dto);
+        });
+
+        return retrieveList;
+    }
+    @Transactional
+    public Hotel updateHotelWithoutModifyBenefitsRoomsOrAttractions(Long id, HotelDTO dto){
+        Hotel hotelInDb = this.getHotelByIdObject(id);
+
+        if (!dto.getName().isBlank()){
+            hotelInDb.setName(dto.getName());
+        }
+        if (dto.getStars() > 0){
+            hotelInDb.setStars(dto.getStars());
+        }
+        if (dto.getTotalRooms() > 0){
+            hotelInDb.setTotalRooms(dto.getTotalRooms());
+        }
+
+        validateHotel(hotelInDb);
+
+        hotelRepositorytory.save(hotelInDb);
+
+        return hotelInDb;
+    }
+
+    @Transactional
+    public void deleteHotel(Long id){
         if (id == null){
-            throw new MissingDataException();
+            throw new RuntimeException("Id cannot be null");
         }
 
-        return repository.findById(id).orElseThrow(NotFoundException::new);
+        Hotel hotelInDb = this.getHotelByIdObject(id);
+
+        if (hotelInDb.getReservedRooms() > 0){
+            throw new RuntimeException("Cannot delete a Hotel entity when have active clients.");
+        }
+
+        hotelRepositorytory.delete(hotelInDb);
     }
 
-    /**
-     * Search some Hotel records in the DataBase by his name.
-     * @param name Hotel name.
-     * @return List of Hotels if it can found some records. Empty List if it can't found.
-     */
-    public List<Hotel> findHotelByName(String name){
-        if (name == null || name.isEmpty()){
-            throw new MissingDataException();
-        }
-
-        List<Hotel> result = repository.findByNameContaining(name);
-
-        if (result.isEmpty()){
-            throw new NotFoundException();
-        }
-
-        return result;
-    }
-
-    /**
-     * Search some Hotel records in the DataBase by his city.
-     * @param city Hotel location.
-     * @return List of Hotels if it can found some records. Empty List if it can't found.
-     */
-    public List<Hotel> findHotelByCity(City city){
-        if (city == null){
-            throw new MissingDataException();
-        }
-
-        List<Hotel> result = repository.findByCity(city);
-
-        if (result.isEmpty()){
-            throw new NotFoundException();
-        }
-
-        return result;
-    }
-
-    /**
-     * Search some Hotel records in the DataBase by his room type.
-     * @param room Hotel room type.
-     * @return List of Hotels if it can found some records. Empty List if it can't found.
-     */
-    public List<Hotel> findHotelByRoom(Room room){
-        if (room == null){
-            throw new MissingDataException();
-        }
-
-        List<Hotel> result = repository.findByRoomType(room);
-
-        if (result.isEmpty()){
-            throw new NotFoundException();
-        }
-
-        return result;
-    }
-
-    /**
-     * Search some Hotel records in the DataBase by his room type.
-     * @param min Minimum price value.
-     * @param max Maximum price value.
-     * @return List of Hotels if it can found some records. Null if the min or max values are null.
-     */
-    public List<Hotel> findHotelByPrice(double min, double max){
-        if (min < 0 || max <= min){
-            throw new  MissingDataException();
-        }
-
-        List<Hotel> result = repository.findByPricePerNightBetween(min, max);
-
-        if (result.isEmpty()){
-            throw new NotFoundException();
-        }
-        return result;
-    }
-
-    /**
-     * Replace one or more data of one record in the DataBase.
-     * @param id Identification number.
-     * @param dto Data to replace in the record.
-     * @return The persisted changes.
-     */
-    public Hotel updateHotel (Long id, HotelDTO dto){
-        Hotel findHotel = this.findHotelById(id);
-
-        if (dto.getName() != null){
-            findHotel.setName(dto.getName());
-        }
-        if (dto.getCity() != null){
-            findHotel.setCity(dto.getCity());
-        }
-        if (dto.getRoomType() != null){
-            findHotel.setRoomType(dto.getRoomType());
-        }
-        if (dto.getPricePerNight() <= 0){
-            findHotel.setPricePerNight(dto.getPricePerNight());
-        }
-
-        repository.save(findHotel);
-        return  findHotel;
-    }
-
-    /**
-     * Search and delete (if it can find) one Hotel record in the DataBase.
-     * @param id Identification Number.
-     * @return True if it can find and delete the Hotel. False if it can't.
-     */
-    public boolean deleteHotelById(Long id){
-        Hotel findHotel = this.findHotelById(id);
-        repository.deleteById(findHotel.getId());
-        return true;
-    }
 }
