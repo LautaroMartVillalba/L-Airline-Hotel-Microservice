@@ -6,6 +6,11 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a Hotel entity mapped to the "entity_hotel" table in the database.
+ * This entity contains basic hotel data including the number of rooms, star rating,
+ * and its associations with rooms, benefits, and attractions.
+ */
 @Entity
 @Table(name = "entity_hotel")
 @AllArgsConstructor

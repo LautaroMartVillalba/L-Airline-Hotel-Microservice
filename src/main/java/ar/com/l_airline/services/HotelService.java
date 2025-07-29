@@ -1,9 +1,7 @@
 package ar.com.l_airline.services;
 
-import ar.com.l_airline.domain.dto.AttractionDTO;
 import ar.com.l_airline.domain.dto.BenefitDTO;
 import ar.com.l_airline.domain.dto.HotelDTO;
-import ar.com.l_airline.domain.dto.RoomDTO;
 import ar.com.l_airline.domain.entities.Attraction;
 import ar.com.l_airline.domain.entities.Benefit;
 import ar.com.l_airline.domain.entities.Hotel;
@@ -16,6 +14,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Service class responsible for business logic related to Hotel entities.
+ * Handles creation and validation of hotels, as well as managing associations with rooms,
+ * benefits, and attractions.
+ */
 @Service
 public class HotelService {
 
@@ -31,6 +34,12 @@ public class HotelService {
         this.attractionService = attractionService;
     }
 
+    /**
+     * Validates the data of a HotelDTO before creating the Hotel entity.
+     * Throws a RuntimeException if any constraint is violated.
+     *
+     * @param dto Data Transfer Object containing hotel data
+     */
     private void validateHotel(HotelDTO dto){
         if(dto.getName().isBlank()){
             throw new RuntimeException("Hotel name cannot be null.");
@@ -51,6 +60,12 @@ public class HotelService {
             throw new RuntimeException("A Hotel must have at least one room.");
         }
     }
+    /**
+     * Validates the data of a Hotel entity.
+     * Throws a RuntimeException if any constraint is violated.
+     *
+     * @param obj Hotel entity to be validated
+     */
     private void validateHotel(Hotel obj){
         if(obj.getName().isBlank()){
             throw new RuntimeException("Hotel name cannot be null.");
@@ -69,10 +84,18 @@ public class HotelService {
         }
     }
 
+    /**
+     * Creates and persists a new Hotel entity based on the given DTOs.
+     * Performs data validation and fetches associated entities (rooms, attractions, benefits).
+     *
+     * @param hotelDTO    DTO containing hotel data
+     * @return The persisted Hotel entity
+     */
     @Transactional
-    public Hotel createHotel (HotelDTO hotelDTO, BenefitDTO benefitDTO){
+    public Hotel createHotel (HotelDTO hotelDTO){
         validateHotel(hotelDTO);
 
+        // Resolve room references from IDs
         List<Room> rooms = new ArrayList<>();
         hotelDTO.getRoomsId().forEach(room -> {
             Room roomInDB = roomService.getRoomById(room);
@@ -80,6 +103,7 @@ public class HotelService {
             rooms.add(roomInDB);
         });
 
+        // Create hotel entity with initial values
         Hotel hotel = Hotel.builder()
                 .name(hotelDTO.getName())
                 .stars(hotelDTO.getStars())
@@ -89,6 +113,7 @@ public class HotelService {
                 .reservedRooms(0)
                 .build();
 
+        // Attach attractions to hotel if any are provided
         List<Attraction> attractionsList = new ArrayList<>();
         if (!hotelDTO.getAttractionsId().isEmpty()){
             hotelDTO.getAttractionsId().forEach(attraction -> {
@@ -99,6 +124,7 @@ public class HotelService {
         }
         hotel.setAttractions(attractionsList);
 
+        // Attach benefits to hotel if any are provided
         List<Benefit> benefitList = new ArrayList<>();
         if (!hotelDTO.getBenefitsId().isEmpty()){
             hotelDTO.getBenefitsId().forEach(benefit -> {
@@ -114,6 +140,14 @@ public class HotelService {
         return hotel;
     }
 
+        /**
+     * Retrieves a hotel by its ID and maps it to a HotelDTO object.
+     * Extracts associated room IDs, attraction IDs, and benefit IDs for inclusion in the DTO.
+     *
+     * @param id The ID of the hotel to retrieve
+     * @return A HotelDTO representing the retrieved hotel
+     * @throws RuntimeException if the ID is less than or equal to 0, or if the hotel is not found
+     */
     public HotelDTO getHotelByIdDTO(Long id){
         if (id <= 0){
             throw new RuntimeException("Id cannot be null");
@@ -138,6 +172,13 @@ public class HotelService {
                 .benefitsId(benefitsIdList)
                 .build();
     }
+    /**
+     * Retrieves a Hotel entity by its ID.
+     *
+     * @param id The ID of the hotel to retrieve
+     * @return The corresponding Hotel entity
+     * @throws RuntimeException if the ID is invalid or the hotel does not exist
+     */
     public Hotel getHotelByIdObject(Long id){
         if (id <= 0){
             throw new RuntimeException("Id cannot be null");
@@ -146,9 +187,17 @@ public class HotelService {
         return hotelRepositorytory.findById(id).orElseThrow();
     }
 
+    /**
+     * Retrieves all hotels with the specified star rating and maps them to HotelDTOs.
+     * Each DTO includes associated room, attraction, and benefit IDs.
+     *
+     * @param stars The star rating to filter hotels by
+     * @return List of HotelDTOs matching the given star rating; empty if none found
+     * @throws RuntimeException if the star rating is less than or equal to zero
+     */
     public List<HotelDTO> getHotelByStars(double stars){
         if (stars <= 0){
-            throw new RuntimeException("Stars qualification cannot be less than zero.");
+            throw new RuntimeException("Stars rating cannot be less than zero.");
         }
 
         List<Hotel> hotelsInDb = hotelRepositorytory.findByStars(stars);
@@ -159,6 +208,7 @@ public class HotelService {
         }
 
         hotelsInDb.forEach(hotel -> {
+            // Prepare lists of associated entity IDs
             List<Long> roomIdList = new ArrayList<>();
             List<Long> attractionIdList = new ArrayList<>();
             List<Long> benefitsIdList = new ArrayList<>();
@@ -167,6 +217,7 @@ public class HotelService {
             hotel.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
             hotel.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
 
+            // Build DTO for each hotel and add to result list
             HotelDTO dto = HotelDTO.builder()
                     .name(hotel.getName())
                     .stars(hotel.getStars())
@@ -183,6 +234,14 @@ public class HotelService {
         return retrieveList;
     }
 
+    /**
+     * Retrieves a list of hotels whose names contain the specified substring.
+     * Each hotel is mapped to a HotelDTO including associated entity IDs.
+     *
+     * @param name Partial or full hotel name
+     * @return List of HotelDTOs matching the name criteria
+     * @throws RuntimeException if the name is blank
+     */
     public List<HotelDTO> getHotelByName(String name){
         if (name.isBlank()){
             throw new RuntimeException("Name cannot be null.");
@@ -220,6 +279,14 @@ public class HotelService {
         return retrieveList;
     }
 
+    /**
+     * Retrieves hotels that offer a specific benefit by name.
+     * Each hotel is mapped to a HotelDTO with associated entity IDs.
+     *
+     * @param benefitsName The benefit name to search for (supports partial match)
+     * @return List of HotelDTOs with matching benefits
+     * @throws RuntimeException if the benefit name is blank
+     */
     public List<HotelDTO> getHotelByBenefits(String benefitsName){
         if (benefitsName.isBlank()){
             throw new RuntimeException("Name cannot be null.");
@@ -257,12 +324,19 @@ public class HotelService {
         return retrieveList;
     }
 
+    /**
+     * Retrieves hotels associated with a specific attraction by name.
+     *
+     * @param attractionName Name of the attraction (partial match supported)
+     * @return List of HotelDTOs related to the attraction
+     * @throws RuntimeException if the name is blank
+     */
     public List<HotelDTO> getHotelByAttraction(String attractionName){
         if (attractionName.isBlank()){
             throw new RuntimeException("Name cannot be null.");
         }
 
-        List<Hotel> hotelsInDb = hotelRepositorytory.findByBenefits(attractionName);
+        List<Hotel> hotelsInDb = hotelRepositorytory.findByAttractions(attractionName);
         List<HotelDTO> retrieveList = new ArrayList<>();
 
         if (hotelsInDb.isEmpty()){
@@ -293,6 +367,16 @@ public class HotelService {
 
         return retrieveList;
     }
+
+    /**
+     * Updates an existing hotel entity by applying only the basic field changes:
+     * name, stars, and totalRooms. Associated rooms, benefits, and attractions remain unchanged.
+     *
+     * @param id  The ID of the hotel to update
+     * @param dto DTO containing the new hotel values
+     * @return The updated Hotel entity
+     * @throws RuntimeException if the resulting hotel state is invalid
+     */
     @Transactional
     public Hotel updateHotelWithoutModifyBenefitsRoomsOrAttractions(Long id, HotelDTO dto){
         Hotel hotelInDb = this.getHotelByIdObject(id);
@@ -314,6 +398,12 @@ public class HotelService {
         return hotelInDb;
     }
 
+    /**
+     * Deletes a hotel by its ID, only if it has no active (reserved) rooms.
+     *
+     * @param id The ID of the hotel to delete
+     * @throws RuntimeException if the ID is null or if there are active reservations
+     */
     @Transactional
     public void deleteHotel(Long id){
         if (id == null){

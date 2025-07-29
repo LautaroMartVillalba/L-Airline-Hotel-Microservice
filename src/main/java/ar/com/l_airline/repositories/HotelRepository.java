@@ -9,6 +9,10 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository interface for managing Hotel entities.
+ * Extends JpaRepository to provide basic CRUD operations and custom queries.
+ */
 @Repository
 public interface HotelRepository extends JpaRepository<Hotel, Long> {
 
