@@ -5,9 +5,8 @@ import ar.com.l_airline.domain.dto.ReservationDTO;
 import ar.com.l_airline.domain.entities.Person;
 import ar.com.l_airline.domain.entities.Reservation;
 import ar.com.l_airline.domain.entities.Room;
-import ar.com.l_airline.repositories.PersonRepository;
+import ar.com.l_airline.domain.enums.RoomState;
 import ar.com.l_airline.repositories.ReservationRepository;
-import ar.com.l_airline.repositories.RoomRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,12 +20,12 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final PersonService personService;
-    private final RoomRepository roomRepository;
+    private final RoomService roomService;
 
-    public ReservationService(ReservationRepository reservationRepository, PersonService personService, RoomRepository roomRepository) {
+    public ReservationService(ReservationRepository reservationRepository, PersonService personService, RoomService roomService) {
         this.reservationRepository = reservationRepository;
         this.personService = personService;
-        this.roomRepository = roomRepository;
+        this.roomService = roomService;
     }
 
     private void validateReservation(Reservation obj) {
@@ -68,40 +67,36 @@ public class ReservationService {
         if (dto.getRoomBookedId() < 1) {
             throw new RuntimeException("Reservations have to point to one room.");
         }
-        if (dto.getClientId() < 1) {
+        if (dto.getPersonId() < 1) {
             throw new RuntimeException("Reservations have to point to one client.");
         }
     }
 
     @Transactional
-    public Reservation createReservation(ReservationDTO reservationDTO, PersonDTO personDTO) {
-        validateReservation(reservationDTO);
+    public Reservation createReservation(ReservationDTO dto, PersonDTO personDTO) {
+        validateReservation(dto);
 
-        if (reservationDTO.getClientId() == null || personService.getPersonByIdObject(reservationDTO.getClientId()).isEmpty()){
-            Person newPerson = personService.createPerson(personDTO);
+        List<Reservation> allReservationInDb = reservationRepository.findByRoom(dto.getRoomBookedId());
 
-            Reservation reservation = Reservation.builder()
-                .numberOfPeople(reservationDTO.getNumberOfPeople())
-                .numberOfNights(reservationDTO.getNumberOfNights())
-                .startAt(reservationDTO.getStartAt())
-                .endAt(reservationDTO.getEndAt())
-                .client(newPerson)
-                .roomBooked(roomRepository.findById(reservationDTO.getRoomBookedId()).orElseThrow()).build();
-
-            reservationRepository.save(reservation);
-
-            return reservation;
+        for (Reservation reservation : allReservationInDb){
+            boolean overlaps = !(dto.getStartAt().isBefore(reservation.getStartAt()) || dto.getStartAt().isAfter(dto.getEndAt()));
+            if (overlaps){
+                throw new RuntimeException("This room is reserved.");
+            }
         }
 
+        Person client = personService.getPersonByIdObject(dto.getPersonId()).orElseGet(() ->personService.createPerson(personDTO));
+
         Reservation reservation = Reservation.builder()
-                .numberOfPeople(reservationDTO.getNumberOfPeople())
-                .numberOfNights(reservationDTO.getNumberOfNights())
-                .startAt(reservationDTO.getStartAt())
-                .endAt(reservationDTO.getEndAt())
-                .client(personService.getPersonByIdObject(reservationDTO.getClientId()).get())
-                .roomBooked(roomRepository.findById(reservationDTO.getRoomBookedId()).orElseThrow()).build();
+                .numberOfPeople(dto.getNumberOfPeople())
+                .numberOfNights(dto.getNumberOfNights())
+                .startAt(dto.getStartAt())
+                .endAt(dto.getEndAt())
+                .client(client)
+                .roomBooked(roomService.getRoomById(dto.getRoomBookedId())).build();
 
         reservationRepository.save(reservation);
+        roomService.changeRoomState(dto.getRoomBookedId(), RoomState.RESERVED);
 
         return reservation;
     }
@@ -129,7 +124,7 @@ public class ReservationService {
                         .numberOfNights(reservation.getNumberOfNights())
                         .endAt(reservation.getEndAt())
                         .startAt(reservation.getStartAt())
-                        .clientId(reservation.getClient().getId())
+                        .personId(reservation.getClient().getId())
                         .roomBookedId(reservation.getRoomBooked().getId()).build();
 
                 response.add(transfer);
@@ -154,7 +149,7 @@ public class ReservationService {
                         .numberOfNights(reservation.getNumberOfNights())
                         .endAt(reservation.getEndAt())
                         .startAt(reservation.getStartAt())
-                        .clientId(reservation.getClient().getId())
+                        .personId(reservation.getClient().getId())
                         .roomBookedId(reservation.getRoomBooked().getId()).build();
 
                 response.add(transfer);
@@ -182,7 +177,7 @@ public class ReservationService {
                         .numberOfNights(reservation.getNumberOfNights())
                         .endAt(reservation.getEndAt())
                         .startAt(reservation.getStartAt())
-                        .clientId(reservation.getClient().getId())
+                        .personId(reservation.getClient().getId())
                         .roomBookedId(reservation.getRoomBooked().getId()).build();
 
                 response.add(transfer);
@@ -207,7 +202,7 @@ public class ReservationService {
                         .numberOfNights(reservation.getNumberOfNights())
                         .endAt(reservation.getEndAt())
                         .startAt(reservation.getStartAt())
-                        .clientId(reservation.getClient().getId())
+                        .personId(reservation.getClient().getId())
                         .roomBookedId(reservation.getRoomBooked().getId()).build();
 
                 response.add(transfer);
@@ -232,7 +227,7 @@ public class ReservationService {
                         .numberOfNights(reservation.getNumberOfNights())
                         .endAt(reservation.getEndAt())
                         .startAt(reservation.getStartAt())
-                        .clientId(reservation.getClient().getId())
+                        .personId(reservation.getClient().getId())
                         .roomBookedId(reservation.getRoomBooked().getId()).build();
 
                 response.add(transfer);
@@ -257,12 +252,12 @@ public class ReservationService {
                         .numberOfNights(reservation.getNumberOfNights())
                         .endAt(reservation.getEndAt())
                         .startAt(reservation.getStartAt())
-                        .clientId(reservation.getClient().getId())
+                        .personId(reservation.getClient().getId())
                         .roomBookedId(reservation.getRoomBooked().getId()).build();
 
                 response.add(transfer);
             });
-        }
+         }
 
         return response;
     }
@@ -282,7 +277,7 @@ public class ReservationService {
                         .numberOfNights(reservation.getNumberOfNights())
                         .endAt(reservation.getEndAt())
                         .startAt(reservation.getStartAt())
-                        .clientId(reservation.getClient().getId())
+                        .personId(reservation.getClient().getId())
                         .roomBookedId(reservation.getRoomBooked().getId()).build();
 
                 response.add(transfer);
@@ -307,7 +302,7 @@ public class ReservationService {
                         .numberOfNights(reservation.getNumberOfNights())
                         .endAt(reservation.getEndAt())
                         .startAt(reservation.getStartAt())
-                        .clientId(reservation.getClient().getId())
+                        .personId(reservation.getClient().getId())
                         .roomBookedId(reservation.getRoomBooked().getId()).build();
 
                 response.add(transfer);
@@ -324,12 +319,12 @@ public class ReservationService {
         }
 
         Reservation reservationInDB = reservationRepository.findById(reservationId).orElseThrow();
-        if (dto.getClientId() > 0) {
-            Person client = personService.getPersonByIdObject(dto.getClientId()).orElseThrow();
+        if (dto.getPersonId() > 0) {
+            Person client = personService.getPersonByIdObject(dto.getPersonId()).orElseThrow();
             reservationInDB.setClient(client);
         }
         if (dto.getRoomBookedId() > 0) {
-            Room room = roomRepository.findById(dto.getRoomBookedId()).orElseThrow();
+            Room room = roomService.getRoomById(dto.getRoomBookedId());
             reservationInDB.setRoomBooked(room);
         }
         if (dto.getNumberOfNights() > 0) {
@@ -358,8 +353,12 @@ public class ReservationService {
 
         Reservation reservation = reservationRepository.findById(reservationId).orElseThrow();
 
+        if (reservation.getStartAt().isBefore(LocalDate.now()) && reservation.getEndAt().isAfter(LocalDate.now())){
+            throw new RuntimeException("The reservation is actually available. Cannot be deleted.");
+        }
+        roomService.changeRoomState(reservation.getRoomBooked().getId(), RoomState.FREE);
+
         reservationRepository.delete(reservation);
     }
-
 
 }

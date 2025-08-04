@@ -16,6 +16,6 @@ public class ReservationDTO {
     private int numberOfNights;
     private LocalDate startAt;
     private LocalDate endAt;
-    private Long clientId;
+    private Long personId;
     private Long roomBookedId;
 }
