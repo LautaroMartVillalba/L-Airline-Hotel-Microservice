@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,58 +27,56 @@ public class ReservationService {
         this.roomService = roomService;
     }
 
-    private void validateReservation(Reservation obj) {
-        if (obj.getNumberOfPeople() < 1 || obj.getNumberOfPeople() > 4) {
-            throw new RuntimeException("Reservations only can contain 1 to 4 people.");
+    private void validateId(Long id, String entity){
+        if (id == null || id < 1){
+            throw new RuntimeException(entity + " id cannot be null or less than zero.");
         }
-        if (obj.getNumberOfNights() < 1) {
-            throw new RuntimeException("Reservations only accepts 1 night as minimum reservation time.");
+    }
+    private void validateReservationDate(LocalDate startAt, LocalDate endAt){
+        if (startAt == null || endAt == null){
+            throw new RuntimeException("Both parameters cannot be null.");
         }
-        if (obj.getStartAt().isBefore(LocalDate.now())) {
-            throw new RuntimeException("A reservation cannot be created in the past.");
+        if (startAt.isBefore(LocalDate.now()) || endAt.isBefore(startAt)){
+            throw new RuntimeException("Please, insert a valid reservation date.");
         }
-        long days = ChronoUnit.DAYS.between(obj.getStartAt(), obj.getEndAt());
-        if (days < 1 || obj.getEndAt().isBefore(LocalDate.now()) || obj.getEndAt().isEqual(LocalDate.now())) {
-            throw new RuntimeException("Reservations cannot be less than one night.");
-        }
-        if (obj.getRoomBooked() == null) {
-            throw new RuntimeException("Reservations have to point to one room.");
-        }
-        if (obj.getClient() == null) {
-            throw new RuntimeException("Reservations have to point to one client.");
+    }
+    private void validateNumberOfPeople(int numberOfPeople){
+        if (numberOfPeople < 1 || numberOfPeople > 4){
+            throw new RuntimeException("A room can only accommodate one to four people.");
         }
     }
 
-    private void validateReservation(ReservationDTO dto) {
-        if (dto.getNumberOfPeople() < 1 || dto.getNumberOfPeople() > 4) {
-            throw new RuntimeException("Reservations only can contain 1 to 4 people.");
+    List<ReservationDTO> convertFromEntityListToDTOList(List<Reservation> list){
+        if (list.isEmpty()){
+            return new ArrayList<>();
         }
-        if (dto.getNumberOfNights() < 1) {
-            throw new RuntimeException("Reservations only accepts 1 night as minimum reservation time.");
-        }
-        if (dto.getStartAt().isBefore(LocalDate.now())) {
-            throw new RuntimeException("A reservation cannot be created in the past.");
-        }
-        long days = ChronoUnit.DAYS.between(dto.getStartAt(), dto.getEndAt());
-        if (days < 1 || dto.getEndAt().isBefore(LocalDate.now()) || dto.getEndAt().isEqual(LocalDate.now())) {
-            throw new RuntimeException("Reservations cannot be less than one night.");
-        }
-        if (dto.getRoomBookedId() < 1) {
-            throw new RuntimeException("Reservations have to point to one room.");
-        }
-        if (dto.getPersonId() < 1) {
-            throw new RuntimeException("Reservations have to point to one client.");
-        }
+
+        List<ReservationDTO> response = new ArrayList<>();
+
+        list.forEach(res -> {
+            ReservationDTO transfer = ReservationDTO.builder()
+                    .numberOfPeople(res.getNumberOfPeople())
+                    .numberOfNights(res.getNumberOfNights())
+                    .endAt(res.getEndAt())
+                    .startAt(res.getStartAt())
+                    .personId(res.getClient().getId())
+                    .roomBookedId(res.getRoomBooked().getId()).build();
+
+            response.add(transfer);
+        });
+
+        return response;
     }
 
     @Transactional
     public Reservation createReservation(ReservationDTO dto, PersonDTO personDTO) {
-        validateReservation(dto);
+        validateReservationDate(dto.getStartAt(), dto.getEndAt());
+        validateNumberOfPeople(dto.getNumberOfPeople());
 
-        List<Reservation> allReservationInDb = reservationRepository.findByRoom(dto.getRoomBookedId());
+        List<Reservation> allRoomReservationInDb = reservationRepository.findByRoom(dto.getRoomBookedId());
 
-        for (Reservation reservation : allReservationInDb){
-            boolean overlaps = !(dto.getStartAt().isBefore(reservation.getStartAt()) || dto.getStartAt().isAfter(dto.getEndAt()));
+        for (Reservation reservation : allRoomReservationInDb){
+            boolean overlaps = !(dto.getStartAt().isBefore(reservation.getStartAt()) || dto.getStartAt().isAfter(reservation.getEndAt()));
             if (overlaps){
                 throw new RuntimeException("This room is reserved.");
             }
@@ -102,11 +99,22 @@ public class ReservationService {
     }
 
     public Reservation getById(Long id) {
-        if (id == 0) {
-            throw new RuntimeException("Id cannot be null.");
-        }
+        validateId(id, "Reservation");
 
         return reservationRepository.findById(id).orElseThrow();
+    }
+    public ReservationDTO getByIdResponse(Long id) {
+        validateId(id, "Reservation");
+
+        Reservation result = reservationRepository.findById(id).orElseThrow();
+        
+        return ReservationDTO.builder()
+                .numberOfPeople(result.getNumberOfPeople())
+                .numberOfNights(result.getNumberOfNights())
+                .endAt(result.getEndAt())
+                .startAt(result.getStartAt())
+                .personId(result.getClient().getId())
+                .roomBookedId(result.getRoomBooked().getId()).build();
     }
 
     public List<ReservationDTO> getByNumberOfPeople(int people) {
@@ -114,24 +122,7 @@ public class ReservationService {
             throw new RuntimeException("Number of people must be between 1 and 4 people.");
         }
 
-        List<Reservation> reservations = reservationRepository.findByNumberOfPeople(people);
-        List<ReservationDTO> response = new ArrayList<>();
-
-        if (!reservations.isEmpty()) {
-            reservations.forEach(reservation -> {
-                ReservationDTO transfer = ReservationDTO.builder()
-                        .numberOfPeople(reservation.getNumberOfPeople())
-                        .numberOfNights(reservation.getNumberOfNights())
-                        .endAt(reservation.getEndAt())
-                        .startAt(reservation.getStartAt())
-                        .personId(reservation.getClient().getId())
-                        .roomBookedId(reservation.getRoomBooked().getId()).build();
-
-                response.add(transfer);
-            });
-        }
-
-        return response;
+        return convertFromEntityListToDTOList(reservationRepository.findByNumberOfPeople(people));
     }
 
     public List<ReservationDTO> getByNumberOfNight(int nights) {
@@ -139,24 +130,7 @@ public class ReservationService {
             throw new RuntimeException("A reservation must be at least at 1 night.");
         }
 
-        List<Reservation> reservations = reservationRepository.findByNumberOfNights(nights);
-        List<ReservationDTO> response = new ArrayList<>();
-
-        if (!reservations.isEmpty()) {
-            reservations.forEach(reservation -> {
-                ReservationDTO transfer = ReservationDTO.builder()
-                        .numberOfPeople(reservation.getNumberOfPeople())
-                        .numberOfNights(reservation.getNumberOfNights())
-                        .endAt(reservation.getEndAt())
-                        .startAt(reservation.getStartAt())
-                        .personId(reservation.getClient().getId())
-                        .roomBookedId(reservation.getRoomBooked().getId()).build();
-
-                response.add(transfer);
-            });
-        }
-
-        return response;
+        return convertFromEntityListToDTOList(reservationRepository.findByNumberOfNights(nights));
     }
 
     public List<ReservationDTO> getByPeopleAndNights(int people, int night) {
@@ -167,24 +141,7 @@ public class ReservationService {
             throw new RuntimeException("A reservation must be at least at 1 night.");
         }
 
-        List<Reservation> reservations = reservationRepository.findByNumberOfPeopleAndNumberOfNights(people, night);
-        List<ReservationDTO> response = new ArrayList<>();
-
-        if (!reservations.isEmpty()) {
-            reservations.forEach(reservation -> {
-                ReservationDTO transfer = ReservationDTO.builder()
-                        .numberOfPeople(reservation.getNumberOfPeople())
-                        .numberOfNights(reservation.getNumberOfNights())
-                        .endAt(reservation.getEndAt())
-                        .startAt(reservation.getStartAt())
-                        .personId(reservation.getClient().getId())
-                        .roomBookedId(reservation.getRoomBooked().getId()).build();
-
-                response.add(transfer);
-            });
-        }
-
-        return response;
+        return convertFromEntityListToDTOList(reservationRepository.findByNumberOfPeopleAndNumberOfNights(people, night));
     }
 
     public List<ReservationDTO> getByStartIn(LocalDate date) {
@@ -192,24 +149,7 @@ public class ReservationService {
             throw new RuntimeException("Date cannot be null.");
         }
 
-        List<Reservation> reservations = reservationRepository.findByStartAtGreaterThan(date);
-        List<ReservationDTO> response = new ArrayList<>();
-
-        if (!reservations.isEmpty()) {
-            reservations.forEach(reservation -> {
-                ReservationDTO transfer = ReservationDTO.builder()
-                        .numberOfPeople(reservation.getNumberOfPeople())
-                        .numberOfNights(reservation.getNumberOfNights())
-                        .endAt(reservation.getEndAt())
-                        .startAt(reservation.getStartAt())
-                        .personId(reservation.getClient().getId())
-                        .roomBookedId(reservation.getRoomBooked().getId()).build();
-
-                response.add(transfer);
-            });
-        }
-
-        return response;
+        return convertFromEntityListToDTOList(reservationRepository.findByStartAtGreaterThan(date));
     }
 
     public List<ReservationDTO> getByFinishIn(LocalDate date) {
@@ -217,24 +157,7 @@ public class ReservationService {
             throw new RuntimeException("Date cannot be null.");
         }
 
-        List<Reservation> reservations = reservationRepository.findByEndAtLessThan(date);
-        List<ReservationDTO> response = new ArrayList<>();
-
-        if (!reservations.isEmpty()) {
-            reservations.forEach(reservation -> {
-                ReservationDTO transfer = ReservationDTO.builder()
-                        .numberOfPeople(reservation.getNumberOfPeople())
-                        .numberOfNights(reservation.getNumberOfNights())
-                        .endAt(reservation.getEndAt())
-                        .startAt(reservation.getStartAt())
-                        .personId(reservation.getClient().getId())
-                        .roomBookedId(reservation.getRoomBooked().getId()).build();
-
-                response.add(transfer);
-            });
-        }
-
-        return response;
+        return convertFromEntityListToDTOList(reservationRepository.findByEndAtLessThan(date));
     }
 
     public List<ReservationDTO> getByBetweenDates(LocalDate start, LocalDate end) {
@@ -242,24 +165,7 @@ public class ReservationService {
             throw new RuntimeException("Date cannot be null.");
         }
 
-        List<Reservation> reservations = reservationRepository.findByStartAtGreaterThanAndEndAtLessThan(start, end);
-        List<ReservationDTO> response = new ArrayList<>();
-
-        if (!reservations.isEmpty()) {
-            reservations.forEach(reservation -> {
-                ReservationDTO transfer = ReservationDTO.builder()
-                        .numberOfPeople(reservation.getNumberOfPeople())
-                        .numberOfNights(reservation.getNumberOfNights())
-                        .endAt(reservation.getEndAt())
-                        .startAt(reservation.getStartAt())
-                        .personId(reservation.getClient().getId())
-                        .roomBookedId(reservation.getRoomBooked().getId()).build();
-
-                response.add(transfer);
-            });
-         }
-
-        return response;
+        return convertFromEntityListToDTOList(reservationRepository.findByStartAtGreaterThanAndEndAtLessThan(start, end));
     }
 
     public List<ReservationDTO> getByRoom(Long roomId) {
@@ -267,24 +173,7 @@ public class ReservationService {
             throw new RuntimeException("Id cannot be null.");
         }
 
-        List<Reservation> reservations = reservationRepository.findByRoom(roomId);
-        List<ReservationDTO> response = new ArrayList<>();
-
-        if (!reservations.isEmpty()) {
-            reservations.forEach(reservation -> {
-                ReservationDTO transfer = ReservationDTO.builder()
-                        .numberOfPeople(reservation.getNumberOfPeople())
-                        .numberOfNights(reservation.getNumberOfNights())
-                        .endAt(reservation.getEndAt())
-                        .startAt(reservation.getStartAt())
-                        .personId(reservation.getClient().getId())
-                        .roomBookedId(reservation.getRoomBooked().getId()).build();
-
-                response.add(transfer);
-            });
-        }
-
-        return response;
+        return convertFromEntityListToDTOList(reservationRepository.findByRoom(roomId));
     }
 
     public List<ReservationDTO> getByClient(Long clientId) {
@@ -292,37 +181,14 @@ public class ReservationService {
             throw new RuntimeException("Id cannot be null.");
         }
 
-        List<Reservation> reservations = reservationRepository.findByPerson(clientId);
-        List<ReservationDTO> response = new ArrayList<>();
-
-        if (!reservations.isEmpty()) {
-            reservations.forEach(reservation -> {
-                ReservationDTO transfer = ReservationDTO.builder()
-                        .numberOfPeople(reservation.getNumberOfPeople())
-                        .numberOfNights(reservation.getNumberOfNights())
-                        .endAt(reservation.getEndAt())
-                        .startAt(reservation.getStartAt())
-                        .personId(reservation.getClient().getId())
-                        .roomBookedId(reservation.getRoomBooked().getId()).build();
-
-                response.add(transfer);
-            });
-        }
-
-        return response;
+        return convertFromEntityListToDTOList(reservationRepository.findByPerson(clientId));
     }
 
     @Transactional
     public Reservation update(Long reservationId, ReservationDTO dto) {
-        if (reservationId < 0) {
-            throw new RuntimeException("Id cannot be null.");
-        }
+        validateId(reservationId, "Reservation");
 
         Reservation reservationInDB = reservationRepository.findById(reservationId).orElseThrow();
-        if (dto.getPersonId() > 0) {
-            Person client = personService.getPersonByIdObject(dto.getPersonId()).orElseThrow();
-            reservationInDB.setClient(client);
-        }
         if (dto.getRoomBookedId() > 0) {
             Room room = roomService.getRoomById(dto.getRoomBookedId());
             reservationInDB.setRoomBooked(room);
@@ -339,17 +205,15 @@ public class ReservationService {
         if (dto.getEndAt() != null) {
             reservationInDB.setEndAt(dto.getEndAt());
         }
-
-        validateReservation(reservationInDB);
+        validateReservationDate(reservationInDB.getStartAt(), reservationInDB.getEndAt());
+        validateNumberOfPeople(reservationInDB.getNumberOfPeople());
 
         return reservationInDB;
     }
 
     @Transactional
     public void delete(Long reservationId) {
-        if (reservationId < 1) {
-            throw new RuntimeException("Id cannot be null.");
-        }
+        validateId(reservationId, "Reservation");
 
         Reservation reservation = reservationRepository.findById(reservationId).orElseThrow();
 
