@@ -3,6 +3,14 @@ package ar.com.l_airline.domain.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
+/**
+ * Represents a person entity in the system.
+ * <p>
+ * A person may be associated with a reservation and contains basic personal
+ * information such as name, email, age, identification (DNI), and phone number.
+ * <p>
+ * Mapped to the database table "entity_person".
+ */
 @Entity
 @Table(name = "entity_person")
 @AllArgsConstructor

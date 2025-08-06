@@ -8,6 +8,12 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository interface for accessing {@link Person} entities from the database.
+ * <p>
+ * Extends {@link JpaRepository} to provide standard CRUD operations,
+ * as well as custom query methods for searching by various attributes.
+ */
 @Repository
 public interface PersonRepository extends JpaRepository<Person, Long> {
 
