@@ -312,6 +312,18 @@ public class RoomService {
         return room;
     }
 
+    @Transactional
+    public void changeRoomState(Long roomId, RoomState state){
+        if (roomId == null || state == null){
+            throw new RuntimeException("Insert all data to update room state");
+        }
+
+        Room roomInDb = this.getRoomById(roomId);
+        roomInDb.setState(state);
+
+        repository.save(roomInDb);
+    }
+
     /**
      * Deletes a room by its ID only if it is currently FREE.
      *
