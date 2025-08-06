@@ -4,9 +4,16 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.util.Date;
-import java.util.List;
 
+/**
+ * Represents a reservation entity in the system.
+ * <p>
+ * This entity stores information about a client's reservation, including the
+ * number of people, number of nights, reservation dates, the client who made
+ * the reservation, and the room that was booked.
+ * <p>
+ * Mapped to the database table "entity_reservation".
+ */
 @Entity
 @Table(name = "entity_reservation")
 @AllArgsConstructor
