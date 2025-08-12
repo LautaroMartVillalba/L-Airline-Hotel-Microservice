@@ -1,6 +1,5 @@
 package ar.com.l_airline.services;
 
-import ar.com.l_airline.domain.dto.BenefitDTO;
 import ar.com.l_airline.domain.dto.HotelDTO;
 import ar.com.l_airline.domain.entities.Attraction;
 import ar.com.l_airline.domain.entities.Benefit;
@@ -22,13 +21,13 @@ import java.util.List;
 @Service
 public class HotelService {
 
-    private final HotelRepository hotelRepositorytory;
+    private final HotelRepository hotelRepository;
     private final RoomService roomService;
     private final BenefitService benefitService;
     private final AttractionService attractionService;
 
     public HotelService(HotelRepository repository, RoomService roomService, BenefitService benefitService, AttractionService attractionService) {
-        this.hotelRepositorytory = repository;
+        this.hotelRepository = repository;
         this.roomService = roomService;
         this.benefitService = benefitService;
         this.attractionService = attractionService;
@@ -128,14 +127,14 @@ public class HotelService {
         List<Benefit> benefitList = new ArrayList<>();
         if (!hotelDTO.getBenefitsId().isEmpty()){
             hotelDTO.getBenefitsId().forEach(benefit -> {
-                Benefit benefitInDb = benefitService.getBenefitById(benefit);
+                Benefit benefitInDb = benefitService.getBenefitByIdObject(benefit);
 
                 benefitList.add(benefitInDb);
             });
         }
         hotel.setBenefits(benefitList);
 
-        hotelRepositorytory.save(hotel);
+        hotelRepository.save(hotel);
 
         return hotel;
     }
@@ -153,7 +152,7 @@ public class HotelService {
             throw new RuntimeException("Id cannot be null");
         }
 
-        Hotel hotelInDb = hotelRepositorytory.findById(id).orElseThrow();
+        Hotel hotelInDb = hotelRepository.findById(id).orElseThrow();
 
         List<Long> roomIdList = new ArrayList<>();
         List<Long> attractionIdList = new ArrayList<>();
@@ -184,7 +183,7 @@ public class HotelService {
             throw new RuntimeException("Id cannot be null");
         }
 
-        return hotelRepositorytory.findById(id).orElseThrow();
+        return hotelRepository.findById(id).orElseThrow();
     }
 
     /**
@@ -200,7 +199,7 @@ public class HotelService {
             throw new RuntimeException("Stars rating cannot be less than zero.");
         }
 
-        List<Hotel> hotelsInDb = hotelRepositorytory.findByStars(stars);
+        List<Hotel> hotelsInDb = hotelRepository.findByStars(stars);
         List<HotelDTO> retrieveList = new ArrayList<>();
 
         if (hotelsInDb.isEmpty()){
@@ -247,7 +246,7 @@ public class HotelService {
             throw new RuntimeException("Name cannot be null.");
         }
 
-        List<Hotel> hotelsInDb = hotelRepositorytory.findByNameContaining(name);
+        List<Hotel> hotelsInDb = hotelRepository.findByNameContaining(name);
         List<HotelDTO> retrieveList = new ArrayList<>();
 
         if (hotelsInDb.isEmpty()){
@@ -292,7 +291,7 @@ public class HotelService {
             throw new RuntimeException("Name cannot be null.");
         }
 
-        List<Hotel> hotelsInDb = hotelRepositorytory.findByBenefits(benefitsName);
+        List<Hotel> hotelsInDb = hotelRepository.findByBenefits(benefitsName);
         List<HotelDTO> retrieveList = new ArrayList<>();
 
         if (hotelsInDb.isEmpty()){
@@ -336,7 +335,7 @@ public class HotelService {
             throw new RuntimeException("Name cannot be null.");
         }
 
-        List<Hotel> hotelsInDb = hotelRepositorytory.findByAttractions(attractionName);
+        List<Hotel> hotelsInDb = hotelRepository.findByAttractions(attractionName);
         List<HotelDTO> retrieveList = new ArrayList<>();
 
         if (hotelsInDb.isEmpty()){
@@ -393,7 +392,7 @@ public class HotelService {
 
         validateHotel(hotelInDb);
 
-        hotelRepositorytory.save(hotelInDb);
+        hotelRepository.save(hotelInDb);
 
         return hotelInDb;
     }
@@ -416,7 +415,7 @@ public class HotelService {
             throw new RuntimeException("Cannot delete a Hotel entity when have active clients.");
         }
 
-        hotelRepositorytory.delete(hotelInDb);
+        hotelRepository.delete(hotelInDb);
     }
 
 }
