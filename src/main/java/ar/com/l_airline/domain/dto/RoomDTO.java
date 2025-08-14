@@ -7,6 +7,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.*;
 
+import java.util.List;
+
 @AllArgsConstructor
 @Getter
 @Setter
@@ -24,6 +26,7 @@ public class RoomDTO{
     @Enumerated(EnumType.STRING)
     private RoomState state;
     private Long hotelId;
-    private Long reservationId;
+    private List<Long> reservationId;
+    private List<Long> roomBookingPeriodId;
 
 }

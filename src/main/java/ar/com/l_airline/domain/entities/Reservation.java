@@ -34,10 +34,10 @@ public class Reservation {
     @OneToOne
     @JoinColumn(name = "person_id", referencedColumnName = "id")
     private Person client;
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "room_id", referencedColumnName = "id")
     private Room roomBooked;
-    @OneToOne(mappedBy = "reservation")
-    private RoomBookingPeriod roomAvailability;
+    @OneToOne(mappedBy = "reservation", cascade = CascadeType.ALL)
+    private RoomBookingPeriod roomBookingPeriod;
 
 }

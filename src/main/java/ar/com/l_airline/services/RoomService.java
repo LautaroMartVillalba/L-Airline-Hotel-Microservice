@@ -2,16 +2,19 @@ package ar.com.l_airline.services;
 
 import ar.com.l_airline.domain.dto.RoomDTO;
 import ar.com.l_airline.domain.entities.Hotel;
+import ar.com.l_airline.domain.entities.Reservation;
 import ar.com.l_airline.domain.entities.Room;
 import ar.com.l_airline.domain.enums.BedsType;
 import ar.com.l_airline.domain.enums.RoomState;
 import ar.com.l_airline.domain.enums.RoomType;
 import ar.com.l_airline.repositories.HotelRepository;
+import ar.com.l_airline.repositories.ReservationRepository;
 import ar.com.l_airline.repositories.RoomRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -28,10 +31,12 @@ public class RoomService {
 
     private final RoomRepository roomRepository;
     private final HotelRepository hotelRepository;
+    private final ReservationRepository reservationRepository;
 
-    public RoomService(RoomRepository roomRepository, HotelRepository hotelRepository) {
+    public RoomService(RoomRepository roomRepository, HotelRepository hotelRepository, ReservationRepository reservationRepository) {
         this.roomRepository = roomRepository;
         this.hotelRepository = hotelRepository;
+        this.reservationRepository = reservationRepository;
     }
 
     private static final int MIN_BEDS = 1;
@@ -69,12 +74,26 @@ public class RoomService {
     }
 
     public List<RoomDTO> parseFromRoomListToRoomDTOList(List<Room> rooms){
+        List<Long> reservationIds = new ArrayList<>();
+        List<Long> roomBookingPeriodIds = new ArrayList<>();
+
+        rooms.forEach(room -> room.getReservation().forEach(reservation -> {
+            reservationIds.add(reservation.getId());
+        }));
+
+        rooms.forEach(room -> room.getRoomBookingPeriod().forEach(rbp -> {
+            roomBookingPeriodIds.add(rbp.getId());
+        }));
+
         return rooms.stream().map(room -> RoomDTO.builder()
                 .id(room.getId())
                 .floor(room.getFloor())
                 .peopleCapacity(room.getPeopleCapacity())
                 .numberOfBeds(room.getNumberOfBeds())
                 .bedType(room.getBedType())
+                .hotelId(room.getHotel().getId())
+                .reservationId(reservationIds)
+                .roomBookingPeriodId(roomBookingPeriodIds)
                 .state(room.getState()).build()).toList();
     }
 
@@ -289,29 +308,37 @@ public class RoomService {
      */
     @Transactional
     public Room updateRoomInfoById(Long id, RoomDTO dto){
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("Room ID must be a positive number.");
+        }
+        if (dto == null) {
+            throw new IllegalArgumentException("Updated room data must not be null.");
+        }
+
         Room room = this.getRoomById(id);
 
-        if ((dto.getNumberOfBeds() != 0 && dto.getBedType() == null)
-                || (dto.getNumberOfBeds() == 0 && dto.getBedType() != null)){
-            throw new RuntimeException("When beds type or number of beds were changed you must specify the two datas.");
-        }
-        if(dto.getBedType() != null){
-            if ((dto.getBedType().equals(BedsType.KING_BED) || dto.getBedType().equals(BedsType.QUEEN_BED))
-                    && (dto.getNumberOfBeds() == 1)){
+        if (dto.getBedType() != null){
+            if ((dto.getBedType().equals(BedsType.QUEEN_BED)
+                    || dto.getBedType().equals(BedsType.KING_BED))
+                    && dto.getNumberOfBeds() == 1){
+                room.setBedType(dto.getBedType());
+            }
+            if ((dto.getBedType().equals(BedsType.DOUBLE_BED)
+                    || dto.getBedType().equals(BedsType.SINGLE_BED)
+                    || dto.getBedType().equals(BedsType.TWIN_BED))
+                    && dto.getNumberOfBeds() > 1 || dto.getNumberOfBeds() < 5){
                 room.setBedType(dto.getBedType());
                 room.setNumberOfBeds(dto.getNumberOfBeds());
             }
-            if (dto.getBedType().equals(BedsType.DOUBLE_BED)
-                    && (dto.getNumberOfBeds() < 3 && dto.getNumberOfBeds() > 0)){
-                room.setBedType(dto.getBedType());
-                room.setNumberOfBeds(dto.getNumberOfBeds());
-            }
         }
-        if(dto.getState() != null){
-            room.setState(dto.getState());
+        if (dto.getPeopleCapacity() != 0) {
+            room.setPeopleCapacity(dto.getPeopleCapacity());
         }
-        if(dto.getRoomType() != null){
+        if (dto.getRoomType() != null) {
             room.setRoomType(dto.getRoomType());
+        }
+        if (dto.getState() != null) {
+            room.setState(dto.getState());
         }
 
         roomRepository.save(room);

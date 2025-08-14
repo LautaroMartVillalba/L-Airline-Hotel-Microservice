@@ -21,6 +21,7 @@ public class RoomBookingPeriod {
     private Long id;
     private LocalDate startAt;
     private LocalDate endAt;
+    @Enumerated(EnumType.STRING)
     private RoomBookingStatus status;
     @ManyToOne
     @JoinColumn(name = "room_id", referencedColumnName = "id")

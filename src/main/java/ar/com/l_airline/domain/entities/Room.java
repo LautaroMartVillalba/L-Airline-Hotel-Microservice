@@ -6,6 +6,8 @@ import ar.com.l_airline.domain.enums.RoomType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 /**
  * Represents a room entity in the hotel domain.
  *
@@ -49,9 +51,9 @@ public class Room {
     @ManyToOne
     @JoinColumn(name = "hotel_id", referencedColumnName = "id")
     private Hotel hotel;
-    @OneToOne(mappedBy = "roomBooked")
-    private Reservation reservation;
-    @OneToOne(mappedBy = "room")
-    private RoomBookingPeriod roomAvailability;
+    @OneToMany(mappedBy = "roomBooked")
+    private List<Reservation> reservation;
+    @OneToMany(mappedBy = "room")
+    private List<RoomBookingPeriod> roomBookingPeriod;
 
 }
