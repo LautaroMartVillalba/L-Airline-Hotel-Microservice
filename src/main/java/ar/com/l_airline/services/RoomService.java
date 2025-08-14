@@ -1,15 +1,17 @@
 package ar.com.l_airline.services;
 
 import ar.com.l_airline.domain.dto.RoomDTO;
+import ar.com.l_airline.domain.entities.Hotel;
 import ar.com.l_airline.domain.entities.Room;
 import ar.com.l_airline.domain.enums.BedsType;
 import ar.com.l_airline.domain.enums.RoomState;
 import ar.com.l_airline.domain.enums.RoomType;
+import ar.com.l_airline.repositories.HotelRepository;
 import ar.com.l_airline.repositories.RoomRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,10 +26,12 @@ import java.util.List;
 @Service
 public class RoomService {
 
-    private final RoomRepository repository;
+    private final RoomRepository roomRepository;
+    private final HotelRepository hotelRepository;
 
-    public RoomService(RoomRepository repository) {
-        this.repository = repository;
+    public RoomService(RoomRepository roomRepository, HotelRepository hotelRepository) {
+        this.roomRepository = roomRepository;
+        this.hotelRepository = hotelRepository;
     }
 
     private static final int MIN_BEDS = 1;
@@ -65,21 +69,13 @@ public class RoomService {
     }
 
     public List<RoomDTO> parseFromRoomListToRoomDTOList(List<Room> rooms){
-        List<RoomDTO> response = new ArrayList<>();
-
-        rooms.forEach(room -> {
-            RoomDTO transfer = RoomDTO.builder()
-                    .id(room.getId())
-                    .floor(room.getFloor())
-                    .peopleCapacity(room.getPeopleCapacity())
-                    .numberOfBeds(room.getNumberOfBeds())
-                    .bedType(room.getBedType())
-                    .state(room.getState()).build();
-
-            response.add(transfer);
-        });
-
-        return response;
+        return rooms.stream().map(room -> RoomDTO.builder()
+                .id(room.getId())
+                .floor(room.getFloor())
+                .peopleCapacity(room.getPeopleCapacity())
+                .numberOfBeds(room.getNumberOfBeds())
+                .bedType(room.getBedType())
+                .state(room.getState()).build()).toList();
     }
 
     /**
@@ -92,6 +88,7 @@ public class RoomService {
     @Transactional
     public Room createRoom(RoomDTO room){
         checkIfRoomIsValid(room);
+        Hotel hotel = hotelRepository.findById(room.getHotelId()).orElseThrow();
 
         Room newRoom = Room.builder()
                 .peopleCapacity(room.getPeopleCapacity())
@@ -99,9 +96,10 @@ public class RoomService {
                 .bedType(room.getBedType())
                 .numberOfBeds(room.getNumberOfBeds())
                 .state(room.getState())
+                .hotel(hotel)
                 .timeWasBooked(0).build();
 
-        repository.save(newRoom);
+        roomRepository.save(newRoom);
 
         return newRoom;
     }
@@ -113,7 +111,7 @@ public class RoomService {
      * @return DTO containing room data
      */
     public RoomDTO getRoomByIdResponse(Long id){
-        Room result = repository.findById(id).orElseThrow(RuntimeException::new);
+        Room result = roomRepository.findById(id).orElseThrow(RuntimeException::new);
 
         return RoomDTO.builder()
                 .id(result.getId())
@@ -131,7 +129,7 @@ public class RoomService {
      * @return the Room entity
      */
     public Room getRoomById(Long id){
-        return repository.findById(id).orElseThrow(RuntimeException::new);
+        return roomRepository.findById(id).orElseThrow(RuntimeException::new);
     }
 
     /**
@@ -145,7 +143,7 @@ public class RoomService {
             throw new RuntimeException("No room will have less than 1 bed or more than 4 beds.");
         }
 
-        List<Room> result = repository.findByNumberOfBeds(number);
+        List<Room> result = roomRepository.findByNumberOfBeds(number);
 
         if (result.isEmpty()){
             return Collections.emptyList();
@@ -161,7 +159,7 @@ public class RoomService {
      * @return list of RoomDTOs
      */
     public List<RoomDTO> getRoomsByBedsTypes(BedsType bedsType){
-        List<Room> result = repository.findByBedType(bedsType);
+        List<Room> result = roomRepository.findByBedType(bedsType);
 
         if (result.isEmpty()){
             return Collections.emptyList();
@@ -180,7 +178,7 @@ public class RoomService {
         if (people < 1 || people > 4){
             throw new RuntimeException("A room only can accommodate between 1 and 4 people over 13 years old.");
         }
-        List<Room> result = repository.findByPeopleCapacity(people);
+        List<Room> result = roomRepository.findByPeopleCapacity(people);
 
         if (result.isEmpty()){
             return Collections.emptyList();
@@ -200,7 +198,7 @@ public class RoomService {
             throw new RuntimeException("You must search a valid type of room.");
         }
 
-        List<Room> result = repository.findByRoomType(roomType);
+        List<Room> result = roomRepository.findByRoomType(roomType);
 
         if (result.isEmpty()){
             return Collections.emptyList();
@@ -220,7 +218,7 @@ public class RoomService {
             throw new RuntimeException("You must search a valid room state.");
         }
 
-        List<Room> result = repository.findByState(state);
+        List<Room> result = roomRepository.findByState(state);
 
         if (result.isEmpty()){
             return Collections.emptyList();
@@ -242,13 +240,21 @@ public class RoomService {
             throw new RuntimeException("Id cannot be null");
         }
 
-        List<Room> result = repository.findByHotel(hotelId);
+        List<Room> result = roomRepository.findByHotel(hotelId);
 
         if (result.isEmpty()){
             return Collections.emptyList();
         }
 
         return parseFromRoomListToRoomDTOList(result);
+    }
+
+    public List<RoomDTO> getFreeRoomsByScheduleBetween(LocalDate startAt, LocalDate endAt){
+        if (startAt == null || endAt == null || startAt.isBefore(LocalDate.now()) || endAt.isBefore(startAt)){
+            throw new RuntimeException("Insert correct date, please.");
+        }
+
+        return parseFromRoomListToRoomDTOList(roomRepository.findByAvailableRoom(startAt, endAt));
     }
 
     /**
@@ -264,7 +270,7 @@ public class RoomService {
             throw new RuntimeException("Id cannot be null");
         }
 
-        List<Room> result = repository.findByReservation(reservationId);
+        List<Room> result = roomRepository.findByReservation(reservationId);
 
         if (result.isEmpty()){
             return Collections.emptyList();
@@ -308,7 +314,7 @@ public class RoomService {
             room.setRoomType(dto.getRoomType());
         }
 
-        repository.save(room);
+        roomRepository.save(room);
         return room;
     }
 
@@ -321,7 +327,7 @@ public class RoomService {
         Room roomInDb = this.getRoomById(roomId);
         roomInDb.setState(state);
 
-        repository.save(roomInDb);
+        roomRepository.save(roomInDb);
     }
 
     /**
@@ -334,7 +340,7 @@ public class RoomService {
         Room roomInDbB = this.getRoomById(roomId);
 
         if (roomInDbB.getState() == RoomState.FREE){
-            repository.deleteById(roomId);
+            roomRepository.deleteById(roomId);
         }
         else {
             throw new RuntimeException("Cannot delete a room if it not free.");

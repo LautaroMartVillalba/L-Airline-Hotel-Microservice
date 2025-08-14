@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 /**
  * Repository interface for accessing and managing {@link Room} entities.
@@ -27,5 +28,15 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Room> findByHotel(Long id);
     @Query("SELECT r FROM Room r JOIN r.reservation res WHERE res.id = :id")
     List<Room> findByReservation(Long id);
+    @Query("""
+            SELECT r FROM Room r
+            WHERE r.id NOT IN (
+                SELECT rbp.room.id FROM RoomBookingPeriod rbp
+                WHERE (rbp.status = 'RESERVED' OR rbp.status = 'BLOCKED')
+                    AND rbp.startAt < :startAt
+                    AND rbp.endAt > :endAt
+                    )
+            """)
+    List<Room> findByAvailableRoom(LocalDate startAt, LocalDate endAt);
 
 }
