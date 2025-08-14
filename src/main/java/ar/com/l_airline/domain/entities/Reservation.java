@@ -37,5 +37,7 @@ public class Reservation {
     @OneToOne
     @JoinColumn(name = "room_id", referencedColumnName = "id")
     private Room roomBooked;
+    @OneToOne(mappedBy = "reservation")
+    private RoomBookingPeriod roomAvailability;
 
 }

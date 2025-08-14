@@ -51,5 +51,7 @@ public class Room {
     private Hotel hotel;
     @OneToOne(mappedBy = "roomBooked")
     private Reservation reservation;
+    @OneToOne(mappedBy = "room")
+    private RoomBookingPeriod roomAvailability;
 
 }
