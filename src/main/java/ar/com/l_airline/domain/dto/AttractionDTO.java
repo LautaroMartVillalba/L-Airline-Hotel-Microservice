@@ -4,6 +4,7 @@ import ar.com.l_airline.domain.entities.Attraction;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NonNull;
 
 import java.time.LocalTime;
 

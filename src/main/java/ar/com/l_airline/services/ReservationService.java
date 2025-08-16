@@ -2,6 +2,7 @@ package ar.com.l_airline.services;
 
 import ar.com.l_airline.domain.dto.PersonDTO;
 import ar.com.l_airline.domain.dto.ReservationDTO;
+import ar.com.l_airline.domain.dto.RoomDTO;
 import ar.com.l_airline.domain.entities.Person;
 import ar.com.l_airline.domain.entities.Reservation;
 import ar.com.l_airline.domain.entities.Room;
@@ -11,8 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Service class responsible for handling business logic related to Reservations.
@@ -53,13 +56,14 @@ public class ReservationService {
      * @param endAt the reservation end date
      * @throws RuntimeException if validation fails
      */
-    private void validateReservationDate(LocalDate startAt, LocalDate endAt){
+    private Long validateReservationDate(LocalDate startAt, LocalDate endAt){
         if (startAt == null || endAt == null){
             throw new RuntimeException("Both parameters cannot be null.");
         }
-        if (startAt.isBefore(LocalDate.now()) || endAt.isBefore(startAt)){
+        if (endAt.isBefore(startAt)){
             throw new RuntimeException("Please, insert a valid reservation date.");
         }
+        return ChronoUnit.DAYS.between(startAt, endAt);
     }
     /**
      * Validates the number of people in the reservation.
@@ -68,9 +72,17 @@ public class ReservationService {
      * @param numberOfPeople the number of people to validate
      * @throws RuntimeException if number is outside the valid range
      */
-    private void validateNumberOfPeople(int numberOfPeople){
+    private void validateNumberOfPeople(Long numberOfPeople){
         if (numberOfPeople < 1 || numberOfPeople > 4){
             throw new RuntimeException("A room can only accommodate one to four people.");
+        }
+    }
+
+    private void validateIfTargetRoomIsReserved(Long roomId, LocalDate startAt, LocalDate endAt){
+        List<RoomDTO> freeRoomsInReservationDate = roomService.getFreeRoomsByScheduleBetween(startAt, endAt);
+
+        if (freeRoomsInReservationDate.stream().noneMatch(room -> Objects.equals(room.getId(), roomId))){
+            throw new RuntimeException("Selected room is not available to reserve between the received date.");
         }
     }
 
@@ -117,25 +129,15 @@ public class ReservationService {
      */
     @Transactional
     public Reservation createReservation(ReservationDTO dto, PersonDTO personDTO) {
-        validateReservationDate(dto.getStartAt(), dto.getEndAt());
+        Long numberOfNights = validateReservationDate(dto.getStartAt(), dto.getEndAt());
         validateNumberOfPeople(dto.getNumberOfPeople());
+        validateIfTargetRoomIsReserved(dto.getRoomBookedId(), dto.getStartAt(), dto.getEndAt());
 
-        // Fetch all existing reservations for the selected room
-        List<Reservation> allRoomReservationInDb = reservationRepository.findByRoom(dto.getRoomBookedId());
-
-        for (Reservation reservation : allRoomReservationInDb){
-            // Check if there is a date overlap with an existing reservation
-            boolean overlaps = !(dto.getStartAt().isBefore(reservation.getStartAt()) || dto.getStartAt().isAfter(reservation.getEndAt()));
-            if (overlaps){
-                throw new RuntimeException("This room is reserved.");
-            }
-        }
-
-        Person client = personService.getPersonByIdObject(dto.getPersonId()).orElseGet(() ->personService.createPerson(personDTO));
+        Person client = personService.getPersonByIdObject(dto.getPersonId()).orElseGet(() -> personService.createPerson(personDTO));
 
         Reservation reservation = Reservation.builder()
                 .numberOfPeople(dto.getNumberOfPeople())
-                .numberOfNights(dto.getNumberOfNights())
+                .numberOfNights(numberOfNights)
                 .startAt(dto.getStartAt())
                 .endAt(dto.getEndAt())
                 .client(client)
@@ -330,19 +332,23 @@ public class ReservationService {
 
         Reservation reservationInDB = reservationRepository.findById(reservationId).orElseThrow();
         if (dto.getRoomBookedId() > 0) {
+            validateIfTargetRoomIsReserved(dto.getRoomBookedId(), dto.getStartAt(), dto.getEndAt());
             Room room = roomService.getRoomById(dto.getRoomBookedId());
             reservationInDB.setRoomBooked(room);
         }
         if (dto.getNumberOfNights() > 0) {
+            validateIfTargetRoomIsReserved(reservationInDB.getRoomBooked().getId(), dto.getStartAt(), dto.getEndAt());
             reservationInDB.setNumberOfNights(dto.getNumberOfNights());
         }
         if (dto.getNumberOfPeople() > 0 && dto.getNumberOfPeople() < 5) {
             reservationInDB.setNumberOfPeople(dto.getNumberOfPeople());
         }
         if (dto.getStartAt() != null) {
+            validateIfTargetRoomIsReserved(dto.getRoomBookedId(), dto.getStartAt(), dto.getEndAt());
             reservationInDB.setStartAt(dto.getStartAt());
         }
         if (dto.getEndAt() != null) {
+            validateIfTargetRoomIsReserved(dto.getRoomBookedId(), dto.getStartAt(), dto.getEndAt());
             reservationInDB.setEndAt(dto.getEndAt());
         }
         // Validate the final state of the updated reservation

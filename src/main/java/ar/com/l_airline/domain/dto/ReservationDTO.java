@@ -12,8 +12,8 @@ import java.time.LocalDate;
 @Builder
 public class ReservationDTO {
     private Long id;
-    private int numberOfPeople;
-    private int numberOfNights;
+    private Long numberOfPeople;
+    private Long numberOfNights;
     private LocalDate startAt;
     private LocalDate endAt;
     private Long personId;
