@@ -1,6 +1,8 @@
 package ar.com.l_airline.domain.entities;
 
+import ar.com.l_airline.exceptionHandler.custom_exceptions.ExistingObjectException;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.*;
 
 /**
@@ -24,13 +26,31 @@ public class Person {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String email;
-    private String dni;
-    private String name;
-    private int age;
+    @NotNull
+    @NotBlank
+    @Email
+    @Size(min = 10)
     @Column(unique = true)
+    private String email;
+    @NotNull
+    @NotBlank
+    @Size(min = 10)
+    @Column(unique = true)
+    private String dni;
+    @NotNull
+    @NotBlank
+    @Size(min = 16, max = 52)
+    private String name;
+    @NotNull
+    @Min(18)
+    private int age;
+    @Column(unique = true, name = "cell_phone_number")
+    @NotNull
+    @Size(min = 7)
     private String cellPhone;
+    @NotNull
     private int numberOfReservations;
+    @NotNull
     @OneToOne(mappedBy = "client")
     private Reservation reservation;
 

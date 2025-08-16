@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+import static java.util.stream.Collectors.toList;
+
 /**
  * Service class responsible for managing Person-related operations.
  * It provides methods to create, retrieve, and validate Person entities.
@@ -53,14 +55,18 @@ public class PersonService {
      * @return a list of PersonDTOs
      */
     private List<PersonDTO> convertFromPersonListToPersonDTOList(List<Person> list){
-        return list.stream().map(person ->
-            PersonDTO.builder()
-            .name(person.getName())
-            .age(person.getAge())
-            .cellPhone(person.getCellPhone())
-            .reservationId(person.getReservation().getId())
-            .numberOfReservations(person.getNumberOfReservations())
-            .build()).toList();
+        return list.stream().map(person -> {
+            Reservation reservation = person.getReservation();
+
+            return PersonDTO.builder()
+                    .name(person.getName())
+                    .age(person.getAge())
+                    .cellPhone(person.getCellPhone())
+                    .reservationId(reservation != null ? reservation.getId() : null)
+                    .numberOfReservations(person.getNumberOfReservations())
+                    .build();
+            }
+        ).toList();
     }
 
     /**
@@ -117,12 +123,12 @@ public class PersonService {
      * @return an Optional containing the Person entity if found
      * @throws RuntimeException if the ID is null
      */
-    public Optional<Person> getPersonByIdObject (Long id){
+    public Person getPersonByIdObject (Long id){
         if (id == null){
             throw new RuntimeException("Id parameter cannot be null.");
         }
 
-        return personRepository.findById(id);
+        return personRepository.findById(id).orElseThrow();
     }
 
     /**
@@ -262,14 +268,10 @@ public class PersonService {
      */
     @Transactional
     public Person updatePersonInfo(Long personId, PersonDTO dto){
-        Person personInDB = this.getPersonByIdObject(personId).orElseThrow();
+        Person personInDB = this.getPersonByIdObject(personId);
 
         if (!dto.getEmail().isBlank()){
             personInDB.setEmail(dto.getEmail());
-        }
-        if (dto.getReservationId() != null){
-            Reservation newReservation = reservationRepository.findById(dto.getReservationId()).orElseThrow();
-            personInDB.setReservation(newReservation);
         }
         if (!dto.getName().isBlank()){
             personInDB.setName(dto.getName());
@@ -281,7 +283,7 @@ public class PersonService {
             personInDB.setCellPhone(dto.getCellPhone());
         }
         if (dto.getNumberOfReservations() > 0){
-            personInDB.setCellPhone(dto.getCellPhone());
+            personInDB.setNumberOfReservations(dto.getNumberOfReservations());
         }
         if (dto.getAge() >= 18){
             personInDB.setAge(dto.getAge());
@@ -306,7 +308,7 @@ public class PersonService {
             throw new RuntimeException("Id cannot be null");
         }
 
-        Person personInDB = this.getPersonByIdObject(id).orElseThrow();
+        Person personInDB = this.getPersonByIdObject(id);
         Reservation reservationRelatedWithPerson = personInDB.getReservation();
 
         if (reservationRelatedWithPerson != null){
