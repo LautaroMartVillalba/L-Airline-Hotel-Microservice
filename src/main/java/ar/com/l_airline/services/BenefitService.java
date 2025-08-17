@@ -2,13 +2,13 @@ package ar.com.l_airline.services;
 
 import ar.com.l_airline.domain.dto.BenefitDTO;
 import ar.com.l_airline.domain.entities.Benefit;
+import ar.com.l_airline.domain.entities.Hotel;
 import ar.com.l_airline.repositories.BenefitRepository;
+import ar.com.l_airline.repositories.HotelRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -18,50 +18,26 @@ import java.util.List;
 @Service
 public class BenefitService {
 
-    private final BenefitRepository repository;
+    private final BenefitRepository benefitRepository;
+    private final HotelRepository hotelRepository;
 
-    public BenefitService(BenefitRepository repository) {
-        this.repository = repository;
+    public BenefitService(BenefitRepository repository, HotelRepository hotelRepository) {
+        this.benefitRepository = repository;
+        this.hotelRepository = hotelRepository;
     }
 
+    void validateInfo(String name, String description, LocalTime openAt, LocalTime closeAt){
 
-    /**
-     * Validates a {@link BenefitDTO} to ensure all required fields are present and logically correct.
-     *
-     * @param dto the DTO to validate
-     * @throws RuntimeException if any field is invalid
-     */
-    void validateBenefit(BenefitDTO dto){
-        if (dto.getName().isBlank()){
+        if (name.isBlank()){
             throw new RuntimeException("Name cannot be null.");
         }
-        if (dto.getDescription().isBlank()){
+        if (description.isBlank()){
             throw new RuntimeException("Description cannot be null.");
         }
-        if (dto.getOpenAt() == null){
+        if (openAt == null){
             throw new RuntimeException("Opening time cannot be null.");
         }
-        if (dto.getCloseAt() == null){
-            throw new RuntimeException("Ending time cannot be null.");
-        }
-    }
-    /**
-     * Validates a {@link Benefit} entity to ensure all required fields are present and logically correct.
-     *
-     * @param object the Benefit entity to validate
-     * @throws RuntimeException if any field is invalid
-     */
-    void validateBenefit(Benefit object){
-        if (object.getName().isBlank()){
-            throw new RuntimeException("Name cannot be null.");
-        }
-        if (object.getDescription().isBlank()){
-            throw new RuntimeException("Description cannot be null.");
-        }
-        if (object.getOpenAt() == null){
-            throw new RuntimeException("Opening time cannot be null.");
-        }
-        if (object.getCloseAt() == null){
+        if (closeAt == null){
             throw new RuntimeException("Ending time cannot be null.");
         }
     }
@@ -73,24 +49,16 @@ public class BenefitService {
      * @return a list of BenefitDTOs, or an empty list if no elements are found
      */
     public List<BenefitDTO> parseBenefitListToBenefitDTOList (List<Benefit> list){
-        if (list.isEmpty()){
-            return Collections.emptyList();
-        }
+        return list.stream().map(benefit -> {
+            Hotel hotel = benefit.getHotel();
 
-        List<BenefitDTO> response = new ArrayList<>();
-
-        list.forEach(benefit ->{
-            BenefitDTO dto = BenefitDTO.builder()
+            return BenefitDTO.builder()
                     .name(benefit.getName())
                     .description(benefit.getDescription())
                     .openAt(benefit.getOpenAt())
                     .closeAt(benefit.getCloseAt())
-                    .hotelId(benefit.getHotel().getId()).build();
-
-            response.add(dto);
-        });
-
-        return response;
+                    .hotelId(hotel != null ? hotel.getId() : null).build();
+        }).toList();
     }
 
     /**
@@ -102,15 +70,17 @@ public class BenefitService {
      */
     @Transactional
     public Benefit createBenefit(BenefitDTO dto){
-        validateBenefit(dto);
+        validateInfo(dto.getName(), dto.getDescription(), dto.getOpenAt(), dto.getCloseAt());
+        Hotel hotel = hotelRepository.findById(dto.getHotelId()).orElseThrow();
 
         Benefit benefit = Benefit.builder()
                 .name(dto.getName())
                 .description(dto.getDescription())
                 .openAt(dto.getOpenAt())
-                .closeAt(dto.getCloseAt()).build();
+                .closeAt(dto.getCloseAt())
+                .hotel(hotel).build();
 
-        repository.save(benefit);
+        benefitRepository.save(benefit);
 
         return benefit;
     }
@@ -127,7 +97,7 @@ public class BenefitService {
             throw new RuntimeException("Insert a valid id number.");
         }
 
-        Benefit result = repository.findById(id).orElseThrow();
+        Benefit result = benefitRepository.findById(id).orElseThrow();
 
         return BenefitDTO.builder()
                 .name(result.getName())
@@ -144,11 +114,11 @@ public class BenefitService {
     * @throws RuntimeException if the provided ID is zero
     */
     public Benefit getBenefitByIdObject(Long id) {
-        if (id == 0) {
+        if (id == 0 || id < 1) {
             throw new RuntimeException("Insert a valid id number.");
         }
 
-        return repository.findById(id).orElseThrow();
+        return benefitRepository.findById(id).orElseThrow();
     }
 
     /**
@@ -163,9 +133,7 @@ public class BenefitService {
             throw new RuntimeException("Name cannot be null.");
         }
 
-        List<Benefit> result = repository.findByNameContaining(name);
-
-        return parseBenefitListToBenefitDTOList(result);
+        return parseBenefitListToBenefitDTOList(benefitRepository.findByNameContaining(name));
     }
 
     /**
@@ -180,9 +148,7 @@ public class BenefitService {
             throw new RuntimeException("Description cannot be null.");
         }
 
-        List<Benefit> result = repository.findByDescriptionContaining(desc);
-
-        return parseBenefitListToBenefitDTOList(result);
+        return parseBenefitListToBenefitDTOList(benefitRepository.findByDescriptionContaining(desc));
     }
 
     /**
@@ -197,9 +163,7 @@ public class BenefitService {
             throw new RuntimeException("Opening time cannot be null.");
         }
 
-        List<Benefit> result = repository.findByOpenAtGreaterThan(opening);
-
-        return parseBenefitListToBenefitDTOList(result);
+        return parseBenefitListToBenefitDTOList(benefitRepository.findByOpenAtGreaterThan(opening));
     }
 
     /**
@@ -214,9 +178,7 @@ public class BenefitService {
             throw new RuntimeException("ending time cannot be null.");
         }
 
-        List<Benefit> result = repository.findByCloseAtLessThan(ending);
-
-        return parseBenefitListToBenefitDTOList(result);
+        return parseBenefitListToBenefitDTOList(benefitRepository.findByCloseAtLessThan(ending));
     }
 
     /**
@@ -232,9 +194,7 @@ public class BenefitService {
             throw new RuntimeException("Both ending or opening cannot be null.");
         }
 
-        List<Benefit> result = repository.findByOpenAtGreaterThanEqualAndCloseAtLessThanEqual(open, close);
-
-        return parseBenefitListToBenefitDTOList(result);
+        return parseBenefitListToBenefitDTOList(benefitRepository.findByOpenAtGreaterThanEqualAndCloseAtLessThanEqual(open, close));
     }
 
     /**
@@ -249,9 +209,7 @@ public class BenefitService {
             throw new RuntimeException("Id cannot be null");
         }
 
-        List<Benefit> result = repository.findByHotel(hotelId);
-
-        return parseBenefitListToBenefitDTOList(result);
+        return parseBenefitListToBenefitDTOList(benefitRepository.findByHotel(hotelId));
     }
 
     /**
@@ -281,8 +239,11 @@ public class BenefitService {
             benefitInDB.setCloseAt(dto.getCloseAt());
         }
 
-        validateBenefit(benefitInDB);
-        repository.save(benefitInDB);
+        validateInfo(benefitInDB.getName()
+                    , benefitInDB.getDescription()
+                    , benefitInDB.getOpenAt()
+                    , benefitInDB.getCloseAt());
+        benefitRepository.save(benefitInDB);
 
         return benefitInDB;
     }
@@ -303,7 +264,7 @@ public class BenefitService {
             throw new RuntimeException("Cannot delete a Benefit when is working.");
         }
 
-        repository.deleteById(id);
+        benefitRepository.deleteById(id);
     }
 
 }
