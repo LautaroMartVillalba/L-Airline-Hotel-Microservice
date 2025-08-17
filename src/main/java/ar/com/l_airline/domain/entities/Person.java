@@ -1,6 +1,5 @@
 package ar.com.l_airline.domain.entities;
 
-import ar.com.l_airline.exceptionHandler.custom_exceptions.ExistingObjectException;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;

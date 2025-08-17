@@ -1,6 +1,10 @@
 package ar.com.l_airline.domain.entities;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -24,15 +28,26 @@ public class Hotel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @NotNull
+    @NotBlank
+    @Size(min = 2, max = 40)
     private String name;
+    @NotNull
     private double stars;
+    @NotNull
+    @Min(2)
     private int totalRooms;
+    @NotNull
     private int freeRooms;
+    @NotNull
     private int reservedRooms;
+    @NotNull
     @OneToMany(mappedBy = "hotel")
     private List<Room> rooms = new ArrayList<>();
+    @NotNull
     @OneToMany(mappedBy = "hotel")
     private List<Benefit> benefits = new ArrayList<>();
+    @NotNull
     @OneToMany(mappedBy = "hotel")
     private List <Attraction> attractions = new ArrayList<>();
 
