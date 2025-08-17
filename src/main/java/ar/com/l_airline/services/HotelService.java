@@ -33,12 +33,15 @@ public class HotelService {
         this.attractionService = attractionService;
     }
 
-    private void validateInfo(String name, int totalRooms){
+    private void validateInfo(String name, int totalRooms, String phoneNumber){
         if(name.isBlank()){
             throw new RuntimeException("Hotel name cannot be null.");
         }
         if (totalRooms <1){
             throw new RuntimeException("A hotel must have at leas one room.");
+        }
+        if (phoneNumber == null || phoneNumber.isBlank()){
+            throw new RuntimeException("Hotel's contact cell phone number cannot be null.");
         }
     }
 
@@ -54,6 +57,7 @@ public class HotelService {
                     .totalRooms(hotel.getTotalRooms())
                     .freeRooms(hotel.getTotalRooms())
                     .reservedRooms(0)
+                    .contactPhone(hotel.getContactPhone())
                     .roomsId(roomsId)
                     .benefitsId(benefitsId)
                     .attractionsId(attractionsId)
@@ -70,7 +74,7 @@ public class HotelService {
      */
     @Transactional
     public Hotel createHotel (HotelDTO hotelDTO){
-        validateInfo(hotelDTO.getName(), hotelDTO.getTotalRooms());
+        validateInfo(hotelDTO.getName(), hotelDTO.getTotalRooms(), hotelDTO.getContactPhone());
 
         // Resolve room references from IDs
         List<Room> rooms = new ArrayList<>();
@@ -86,6 +90,7 @@ public class HotelService {
                 .stars(0)
                 .totalRooms(hotelDTO.getTotalRooms())
                 .freeRooms(hotelDTO.getTotalRooms())
+                .contactPhone(hotelDTO.getContactPhone())
                 .rooms(rooms)
                 .reservedRooms(0)
                 .build();
@@ -250,7 +255,7 @@ public class HotelService {
             hotelInDb.setTotalRooms(dto.getTotalRooms());
         }
 
-        validateInfo(hotelInDb.getName(), hotelInDb.getTotalRooms());
+        validateInfo(hotelInDb.getName(), hotelInDb.getTotalRooms(), hotelInDb.getContactPhone());
 
         hotelRepository.save(hotelInDb);
 

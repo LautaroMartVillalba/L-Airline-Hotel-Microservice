@@ -1,8 +1,5 @@
 package ar.com.l_airline.domain.dto;
 
-import ar.com.l_airline.domain.entities.Attraction;
-import ar.com.l_airline.domain.entities.Room;
-import ar.com.l_airline.domain.entities.Benefit;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,6 +18,7 @@ public class HotelDTO {
     private int totalRooms;
     private int freeRooms;
     private int reservedRooms;
+    private String contactPhone;
     private List<Long> roomsId;
     private List<Long> benefitsId;
     private List<Long> attractionsId;

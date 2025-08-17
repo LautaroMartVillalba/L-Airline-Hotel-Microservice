@@ -36,11 +36,18 @@ public class Hotel {
     private double stars;
     @NotNull
     @Min(2)
+    @Column(name = "total_rooms")
     private int totalRooms;
     @NotNull
+    @Column(name = "free_rooms")
     private int freeRooms;
     @NotNull
+    @Column(name = "reserved_rooms")
     private int reservedRooms;
+    @NotNull
+    @Size(min = 9, max = 12)
+    @Column(unique = true, name = "contact_phone")
+    private String contactPhone;
     @NotNull
     @OneToMany(mappedBy = "hotel")
     private List<Room> rooms = new ArrayList<>();
