@@ -32,46 +32,20 @@ public class AttractionService {
         this.hotelRepository = hotelRepository;
     }
 
-    /**
-     * Validates the contents of a {@link AttractionDTO}.
-     * Ensures non-null, non-blank values and valid capacities and time ranges.
-     *
-     * @param dto the DTO to validate
-     * @throws RuntimeException if any validation rule fails
-     */
-    private void validateAttraction(AttractionDTO dto) {
-        if (dto.getName() == null || dto.getName().isBlank()) {
+    private void validateInfo(String name, String description, int peopleCapacity, LocalTime openAt, LocalTime closeAt){
+        if (name == null || name.isBlank()) {
             throw new RuntimeException("Attraction name cannot be null.");
         }
-        if (dto.getPeopleCapacity() < 1) {
+        if (description == null || description.isBlank()) {
+            throw new RuntimeException("Attraction description cannot be null.");
+        }
+        if (peopleCapacity < 1) {
             throw new RuntimeException("At least the attraction must be capable to be used by one person.");
         }
-        if (dto.getOpenAt() == null) {
+        if (openAt == null) {
             throw new RuntimeException("Attraction opening cannot be null.");
         }
-        if (dto.getCloseAt() == null) {
-            throw new RuntimeException("Attraction ending cannot be null.");
-        }
-    }
-
-    /**
-     * Validates the contents of an {@link Attraction} entity.
-     * The Logic is identical to the DTO validator.
-     *
-     * @param data the entity to validate
-     * @throws RuntimeException if any validation rule fails
-     */
-    private void validateAttraction(Attraction data) {
-        if (data.getName() == null || data.getName().isBlank()) {
-            throw new RuntimeException("Attraction name cannot be null.");
-        }
-        if (data.getPeopleCapacity() < 1) {
-            throw new RuntimeException("At least the attraction must be capable to be used by one person.");
-        }
-        if (data.getOpenAt() == null) {
-            throw new RuntimeException("Attraction opening cannot be null.");
-        }
-        if (data.getCloseAt() == null) {
+        if (closeAt == null) {
             throw new RuntimeException("Attraction ending cannot be null.");
         }
     }
@@ -83,21 +57,17 @@ public class AttractionService {
      * @return list of AttractionDTOs
      */
     public List<AttractionDTO> parseFromAttractionListToAttractionDTOList(List<Attraction> list){
-        List<AttractionDTO> response = new ArrayList<>();
+        return list.stream().map(attraction -> {
+            Hotel hotel = attraction.getHotel();
 
-        list.forEach(attraction -> {
-            AttractionDTO dto = AttractionDTO.builder()
+            return AttractionDTO.builder()
                     .name(attraction.getName())
                     .description(attraction.getDescription())
                     .peopleCapacity(attraction.getPeopleCapacity())
                     .openAt(attraction.getOpenAt())
                     .closeAt(attraction.getCloseAt())
-                    .hotelId(attraction.getHotel().getId()).build();
-
-            response.add(dto);
-        });
-
-        return response;
+                    .hotelId(hotel != null ? hotel.getId() : null).build();
+        }).toList();
     }
 
     /**
@@ -110,7 +80,7 @@ public class AttractionService {
      */
     @Transactional
     public Attraction createAttraction(AttractionDTO dto, Long hotelId) {
-        validateAttraction(dto);
+        validateInfo(dto.getName(), dto.getDescription(), dto.getPeopleCapacity(), dto.getOpenAt(), dto.getCloseAt());
 
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow();
 
@@ -157,12 +127,12 @@ public class AttractionService {
      * @return an Optional containing the Attraction if found, or empty otherwise
      * @throws RuntimeException if the ID is invalid
      */
-    public Optional<Attraction> getAttractionByIdObject(Long id) {
+    public Attraction getAttractionByIdObject(Long id) {
         if (id <= 0) {
             throw new RuntimeException("Id cannot be null.");
         }
 
-        return attractionRepository.findById(id);
+        return attractionRepository.findById(id).orElseThrow();
     }
 
     /**
@@ -177,13 +147,7 @@ public class AttractionService {
             throw new RuntimeException("Name parameter cannot be empty.");
         }
 
-        List<Attraction> result = attractionRepository.findByNameContaining(name);
-
-        if (result.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        return parseFromAttractionListToAttractionDTOList(result);
+        return parseFromAttractionListToAttractionDTOList(attractionRepository.findByNameContaining(name));
     }
 
     /**
@@ -198,13 +162,7 @@ public class AttractionService {
             throw new RuntimeException("Description cannot be null.");
         }
 
-        List<Attraction> result = attractionRepository.findByDescriptionContaining(desc);
-
-        if (result.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        return parseFromAttractionListToAttractionDTOList(result);
+        return parseFromAttractionListToAttractionDTOList(attractionRepository.findByDescriptionContaining(desc));
     }
 
     /**
@@ -216,17 +174,11 @@ public class AttractionService {
      * @throws RuntimeException if provided values are invalid or logically inconsistent
      */
     List<AttractionDTO> getAttractionByCapacity(int min, int max) {
-        if (min <= 0 || min > max || max <= 0) {
+        if (min <= 0 || min > max) {
             throw new RuntimeException("Insert valid minimum and maximum values.");
         }
 
-        List<Attraction> result = attractionRepository.findByPeopleCapacityBetween(min, max);
-
-        if (result.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        return parseFromAttractionListToAttractionDTOList(result);
+        return parseFromAttractionListToAttractionDTOList(attractionRepository.findByPeopleCapacityBetween(min, max));
     }
 
     /**
@@ -241,13 +193,7 @@ public class AttractionService {
             throw new RuntimeException("Invalid time format.");
         }
 
-        List<Attraction> result = attractionRepository.findByOpenAtGreaterThan(time);
-
-        if (result.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        return parseFromAttractionListToAttractionDTOList(result);
+        return parseFromAttractionListToAttractionDTOList(attractionRepository.findByOpenAtGreaterThan(time));
     }
 
     /**
@@ -262,13 +208,7 @@ public class AttractionService {
             throw new RuntimeException("Invalid time format.");
         }
 
-        List<Attraction> result = attractionRepository.findByCloseAtLessThan(time);
-
-        if (result.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        return parseFromAttractionListToAttractionDTOList(result);
+        return parseFromAttractionListToAttractionDTOList(attractionRepository.findByCloseAtLessThan(time));
     }
 
     /**
@@ -285,13 +225,7 @@ public class AttractionService {
             throw new RuntimeException("Invalid time format.");
         }
 
-        List<Attraction> result = attractionRepository.findByOpenAtGreaterThanEqualAndCloseAtLessThanEqual(opening, ending);
-
-        if (result.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        return parseFromAttractionListToAttractionDTOList(result);
+        return parseFromAttractionListToAttractionDTOList(attractionRepository.findByOpenAtGreaterThanEqualAndCloseAtLessThanEqual(opening, ending));
     }
 
     /**
@@ -306,13 +240,7 @@ public class AttractionService {
             throw new RuntimeException("Id cannot be null.");
         }
 
-        List<Attraction> result = attractionRepository.findByHotel(hotelId);
-
-        if (result.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        return parseFromAttractionListToAttractionDTOList(result);
+        return parseFromAttractionListToAttractionDTOList(attractionRepository.findByHotel(hotelId));
     }
 
     /**
@@ -343,7 +271,11 @@ public class AttractionService {
             attractionInDB.setPeopleCapacity(dto.getPeopleCapacity());
         }
 
-        validateAttraction(attractionInDB);
+        validateInfo(attractionInDB.getName()
+                , attractionInDB.getDescription()
+                , attractionInDB.getPeopleCapacity()
+                , attractionInDB.getOpenAt()
+                , attractionInDB.getCloseAt());
         attractionRepository.save(attractionInDB);
 
         return attractionInDB;
@@ -357,12 +289,12 @@ public class AttractionService {
      */
     @Transactional
     public void deleteAttraction(Long id) {
-        Attraction attractionInDB = attractionRepository.findById(id).orElseThrow();
+        Attraction attractionInDB = this.getAttractionByIdObject(id);
 
         LocalTime opening = attractionInDB.getOpenAt();
         LocalTime ending = attractionInDB.getCloseAt();
 
-        if (opening.isAfter(LocalTime.now()) && ending.isBefore(LocalTime.now())){
+        if (opening.isBefore(LocalTime.now()) && ending.isAfter(LocalTime.now())){
             throw new RuntimeException("Cannot delete an attraction when is working.");
         }
 
