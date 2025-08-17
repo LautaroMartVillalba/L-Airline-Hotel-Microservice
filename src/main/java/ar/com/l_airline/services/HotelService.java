@@ -33,54 +33,32 @@ public class HotelService {
         this.attractionService = attractionService;
     }
 
-    /**
-     * Validates the data of a HotelDTO before creating the Hotel entity.
-     * Throws a RuntimeException if any constraint is violated.
-     *
-     * @param dto Data Transfer Object containing hotel data
-     */
-    private void validateHotel(HotelDTO dto){
-        if(dto.getName().isBlank()){
+    private void validateInfo(String name, int totalRooms){
+        if(name.isBlank()){
             throw new RuntimeException("Hotel name cannot be null.");
         }
-        if (dto.getTotalRooms() <1){
+        if (totalRooms <1){
             throw new RuntimeException("A hotel must have at leas one room.");
-        }
-        if (dto.getFreeRooms() > dto.getTotalRooms()){
-            throw new RuntimeException("Free rooms cannot be more than total rooms.");
-        }
-        if (dto.getReservedRooms() > dto.getTotalRooms()){
-            throw new RuntimeException("Reserved rooms cannot be more than total rooms.");
-        }
-        if ((dto.getReservedRooms() + dto.getFreeRooms()) > dto.getTotalRooms()){
-            throw new RuntimeException("The sum of free and reserved rooms cannot be more than total rooms.");
-        }
-        if (dto.getRoomsId().isEmpty()){
-            throw new RuntimeException("A Hotel must have at least one room.");
         }
     }
-    /**
-     * Validates the data of a Hotel entity.
-     * Throws a RuntimeException if any constraint is violated.
-     *
-     * @param obj Hotel entity to be validated
-     */
-    private void validateHotel(Hotel obj){
-        if(obj.getName().isBlank()){
-            throw new RuntimeException("Hotel name cannot be null.");
-        }
-        if (obj.getTotalRooms() <1){
-            throw new RuntimeException("A hotel must have at leas one room.");
-        }
-        if (obj.getFreeRooms() > obj.getTotalRooms()){
-            throw new RuntimeException("Free rooms cannot be more than total rooms.");
-        }
-        if (obj.getReservedRooms() > obj.getTotalRooms()){
-            throw new RuntimeException("Reserved rooms cannot be more than total rooms.");
-        }
-        if ((obj.getReservedRooms() + obj.getFreeRooms()) > obj.getTotalRooms()){
-            throw new RuntimeException("The sum of free and reserved rooms cannot be more than total rooms.");
-        }
+
+    private List<HotelDTO> convertFromHotelListToHotelDTOList(List<Hotel> list){
+        return list.stream().map(hotel -> {
+            List<Long> roomsId = hotel.getRooms().stream().map(Room::getId).toList();
+            List<Long> benefitsId = hotel.getBenefits().stream().map(Benefit::getId).toList();
+            List<Long> attractionsId = hotel.getAttractions().stream().map(Attraction::getId).toList();
+
+            return HotelDTO.builder()
+                    .name(hotel.getName())
+                    .stars(hotel.getStars())
+                    .totalRooms(hotel.getTotalRooms())
+                    .freeRooms(hotel.getTotalRooms())
+                    .reservedRooms(0)
+                    .roomsId(roomsId)
+                    .benefitsId(benefitsId)
+                    .attractionsId(attractionsId)
+                    .build();
+        }).toList();
     }
 
     /**
@@ -92,7 +70,7 @@ public class HotelService {
      */
     @Transactional
     public Hotel createHotel (HotelDTO hotelDTO){
-        validateHotel(hotelDTO);
+        validateInfo(hotelDTO.getName(), hotelDTO.getTotalRooms());
 
         // Resolve room references from IDs
         List<Room> rooms = new ArrayList<>();
@@ -105,7 +83,7 @@ public class HotelService {
         // Create hotel entity with initial values
         Hotel hotel = Hotel.builder()
                 .name(hotelDTO.getName())
-                .stars(hotelDTO.getStars())
+                .stars(0)
                 .totalRooms(hotelDTO.getTotalRooms())
                 .freeRooms(hotelDTO.getTotalRooms())
                 .rooms(rooms)
@@ -199,38 +177,7 @@ public class HotelService {
             throw new RuntimeException("Stars rating cannot be less than zero.");
         }
 
-        List<Hotel> hotelsInDb = hotelRepository.findByStars(stars);
-        List<HotelDTO> retrieveList = new ArrayList<>();
-
-        if (hotelsInDb.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        hotelsInDb.forEach(hotel -> {
-            // Prepare lists of associated entity IDs
-            List<Long> roomIdList = new ArrayList<>();
-            List<Long> attractionIdList = new ArrayList<>();
-            List<Long> benefitsIdList = new ArrayList<>();
-
-            hotel.getRooms().forEach(room -> roomIdList.add(room.getId()));
-            hotel.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
-            hotel.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
-
-            // Build DTO for each hotel and add to result list
-            HotelDTO dto = HotelDTO.builder()
-                    .name(hotel.getName())
-                    .stars(hotel.getStars())
-                    .reservedRooms(hotel.getReservedRooms())
-                    .totalRooms(hotel.getTotalRooms())
-                    .freeRooms(hotel.getFreeRooms())
-                    .roomsId(roomIdList)
-                    .attractionsId(attractionIdList)
-                    .benefitsId(benefitsIdList).build();
-
-            retrieveList.add(dto);
-        });
-
-        return retrieveList;
+        return convertFromHotelListToHotelDTOList(hotelRepository.findByStars(stars));
     }
 
     /**
@@ -246,36 +193,7 @@ public class HotelService {
             throw new RuntimeException("Name cannot be null.");
         }
 
-        List<Hotel> hotelsInDb = hotelRepository.findByNameContaining(name);
-        List<HotelDTO> retrieveList = new ArrayList<>();
-
-        if (hotelsInDb.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        hotelsInDb.forEach(hotel -> {
-            List<Long> roomIdList = new ArrayList<>();
-            List<Long> attractionIdList = new ArrayList<>();
-            List<Long> benefitsIdList = new ArrayList<>();
-
-            hotel.getRooms().forEach(room -> roomIdList.add(room.getId()));
-            hotel.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
-            hotel.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
-
-            HotelDTO dto = HotelDTO.builder()
-                    .name(hotel.getName())
-                    .stars(hotel.getStars())
-                    .reservedRooms(hotel.getReservedRooms())
-                    .totalRooms(hotel.getTotalRooms())
-                    .freeRooms(hotel.getFreeRooms())
-                    .roomsId(roomIdList)
-                    .attractionsId(attractionIdList)
-                    .benefitsId(benefitsIdList).build();
-
-            retrieveList.add(dto);
-        });
-
-        return retrieveList;
+        return convertFromHotelListToHotelDTOList(hotelRepository.findByNameContaining(name));
     }
 
     /**
@@ -291,36 +209,7 @@ public class HotelService {
             throw new RuntimeException("Name cannot be null.");
         }
 
-        List<Hotel> hotelsInDb = hotelRepository.findByBenefits(benefitsName);
-        List<HotelDTO> retrieveList = new ArrayList<>();
-
-        if (hotelsInDb.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        hotelsInDb.forEach(hotel -> {
-            List<Long> roomIdList = new ArrayList<>();
-            List<Long> attractionIdList = new ArrayList<>();
-            List<Long> benefitsIdList = new ArrayList<>();
-
-            hotel.getRooms().forEach(room -> roomIdList.add(room.getId()));
-            hotel.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
-            hotel.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
-
-            HotelDTO dto = HotelDTO.builder()
-                    .name(hotel.getName())
-                    .stars(hotel.getStars())
-                    .reservedRooms(hotel.getReservedRooms())
-                    .totalRooms(hotel.getTotalRooms())
-                    .freeRooms(hotel.getFreeRooms())
-                    .roomsId(roomIdList)
-                    .attractionsId(attractionIdList)
-                    .benefitsId(benefitsIdList).build();
-
-            retrieveList.add(dto);
-        });
-
-        return retrieveList;
+        return convertFromHotelListToHotelDTOList(hotelRepository.findByBenefits(benefitsName));
     }
 
     /**
@@ -335,36 +224,7 @@ public class HotelService {
             throw new RuntimeException("Name cannot be null.");
         }
 
-        List<Hotel> hotelsInDb = hotelRepository.findByAttractions(attractionName);
-        List<HotelDTO> retrieveList = new ArrayList<>();
-
-        if (hotelsInDb.isEmpty()){
-            return Collections.emptyList();
-        }
-
-        hotelsInDb.forEach(hotel -> {
-            List<Long> roomIdList = new ArrayList<>();
-            List<Long> attractionIdList = new ArrayList<>();
-            List<Long> benefitsIdList = new ArrayList<>();
-
-            hotel.getRooms().forEach(room -> roomIdList.add(room.getId()));
-            hotel.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
-            hotel.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
-
-            HotelDTO dto = HotelDTO.builder()
-                    .name(hotel.getName())
-                    .stars(hotel.getStars())
-                    .reservedRooms(hotel.getReservedRooms())
-                    .totalRooms(hotel.getTotalRooms())
-                    .freeRooms(hotel.getFreeRooms())
-                    .roomsId(roomIdList)
-                    .attractionsId(attractionIdList)
-                    .benefitsId(benefitsIdList).build();
-
-            retrieveList.add(dto);
-        });
-
-        return retrieveList;
+        return convertFromHotelListToHotelDTOList(hotelRepository.findByAttractions(attractionName));
     }
 
     /**
@@ -390,7 +250,7 @@ public class HotelService {
             hotelInDb.setTotalRooms(dto.getTotalRooms());
         }
 
-        validateHotel(hotelInDb);
+        validateInfo(hotelInDb.getName(), hotelInDb.getTotalRooms());
 
         hotelRepository.save(hotelInDb);
 
@@ -405,7 +265,7 @@ public class HotelService {
      */
     @Transactional
     public void deleteHotel(Long id){
-        if (id == null){
+        if (id == null || id < 1){
             throw new RuntimeException("Id cannot be null");
         }
 
