@@ -94,7 +94,7 @@ public class HotelService {
         List<Attraction> attractionsList = new ArrayList<>();
         if (!hotelDTO.getAttractionsId().isEmpty()){
             hotelDTO.getAttractionsId().forEach(attraction -> {
-                Attraction attractionInDb = attractionService.getAttractionByIdObject(attraction).orElseThrow();
+                Attraction attractionInDb = attractionService.getAttractionByIdObject(attraction);
 
                 attractionsList.add(attractionInDb);
             });

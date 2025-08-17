@@ -123,12 +123,12 @@ public class PersonService {
      * @return an Optional containing the Person entity if found
      * @throws RuntimeException if the ID is null
      */
-    public Person getPersonByIdObject (Long id){
+    public Optional<Person> getPersonByIdObject (Long id){
         if (id == null){
             throw new RuntimeException("Id parameter cannot be null.");
         }
 
-        return personRepository.findById(id).orElseThrow();
+        return personRepository.findById(id);
     }
 
     /**
@@ -268,7 +268,7 @@ public class PersonService {
      */
     @Transactional
     public Person updatePersonInfo(Long personId, PersonDTO dto){
-        Person personInDB = this.getPersonByIdObject(personId);
+        Person personInDB = this.getPersonByIdObject(personId).orElseThrow();
 
         if (!dto.getEmail().isBlank()){
             personInDB.setEmail(dto.getEmail());
@@ -308,7 +308,7 @@ public class PersonService {
             throw new RuntimeException("Id cannot be null");
         }
 
-        Person personInDB = this.getPersonByIdObject(id);
+        Person personInDB = this.getPersonByIdObject(id).orElseThrow();
         Reservation reservationRelatedWithPerson = personInDB.getReservation();
 
         if (reservationRelatedWithPerson != null){

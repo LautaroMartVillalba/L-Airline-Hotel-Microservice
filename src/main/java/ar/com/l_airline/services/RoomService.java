@@ -31,12 +31,10 @@ public class RoomService {
 
     private final RoomRepository roomRepository;
     private final HotelRepository hotelRepository;
-    private final ReservationRepository reservationRepository;
 
     public RoomService(RoomRepository roomRepository, HotelRepository hotelRepository, ReservationRepository reservationRepository) {
         this.roomRepository = roomRepository;
         this.hotelRepository = hotelRepository;
-        this.reservationRepository = reservationRepository;
     }
 
     private static final int MIN_BEDS = 1;
