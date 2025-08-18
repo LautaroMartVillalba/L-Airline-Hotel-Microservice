@@ -7,6 +7,8 @@ import ar.com.l_airline.domain.entities.Person;
 import ar.com.l_airline.domain.entities.Reservation;
 import ar.com.l_airline.domain.entities.Room;
 import ar.com.l_airline.domain.enums.RoomState;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundInDatabaseException;
 import ar.com.l_airline.repositories.ReservationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,11 +43,11 @@ public class ReservationService {
      *
      * @param id the ID to validate
      * @param entity the name of the entity (used in exception message)
-     * @throws RuntimeException if ID is null or less than 1
+     * @throws MissingDataException if ID is null or less than 1
      */
     private void validateId(Long id, String entity){
         if (id == null || id < 1){
-            throw new RuntimeException(entity + " id cannot be null or less than zero.");
+            throw new MissingDataException(entity + " id cannot be null or less than zero.");
         }
     }
     /**
@@ -54,14 +56,14 @@ public class ReservationService {
      *
      * @param startAt the reservation start date
      * @param endAt the reservation end date
-     * @throws RuntimeException if validation fails
+     * @throws MissingDataException if validation fails
      */
     private Long validateReservationDate(LocalDate startAt, LocalDate endAt){
         if (startAt == null || endAt == null){
-            throw new RuntimeException("Both parameters cannot be null.");
+            throw new MissingDataException("Both parameters cannot be null.");
         }
         if (endAt.isBefore(startAt)){
-            throw new RuntimeException("Please, insert a valid reservation date.");
+            throw new MissingDataException("Please, insert a valid reservation date.");
         }
         return ChronoUnit.DAYS.between(startAt, endAt);
     }
@@ -70,11 +72,11 @@ public class ReservationService {
      * The Acceptable range is from 1 to 4 inclusive.
      *
      * @param numberOfPeople the number of people to validate
-     * @throws RuntimeException if number is outside the valid range
+     * @throws MissingDataException if number is outside the valid range
      */
     private void validateNumberOfPeople(Long numberOfPeople){
         if (numberOfPeople < 1 || numberOfPeople > 4){
-            throw new RuntimeException("A room can only accommodate one to four people.");
+            throw new MissingDataException("A room can only accommodate one to four people.");
         }
     }
 
@@ -82,7 +84,7 @@ public class ReservationService {
         List<RoomDTO> freeRoomsInReservationDate = roomService.getFreeRoomsByScheduleBetween(startAt, endAt);
 
         if (freeRoomsInReservationDate.stream().noneMatch(room -> Objects.equals(room.getId(), roomId))){
-            throw new RuntimeException("Selected room is not available to reserve between the received date.");
+            throw new MissingDataException("Selected room is not available to reserve between the received date.");
         }
     }
 
@@ -125,7 +127,7 @@ public class ReservationService {
      * @param dto the reservation data transfer object containing reservation info
      * @param personDTO the person data transfer object for client creation if needed
      * @return the created Reservation entity
-     * @throws RuntimeException if any validation fails or if the room is already booked
+     * @throws MissingDataException if any validation fails or if the room is already booked
      */
     @Transactional
     public Reservation createReservation(ReservationDTO dto, PersonDTO personDTO) {
@@ -154,24 +156,24 @@ public class ReservationService {
      *
      * @param id the ID of the reservation
      * @return the Reservation entity
-     * @throws RuntimeException if the ID is invalid or the reservation does not exist
+     * @throws MissingDataException if the ID is invalid or the reservation does not exist
      */
     public Reservation getById(Long id) {
         validateId(id, "Reservation");
 
-        return reservationRepository.findById(id).orElseThrow();
+        return reservationRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
     }
     /**
      * Retrieves a reservation by its ID and converts it into a DTO representation.
      *
      * @param id the ID of the reservation
      * @return the ReservationDTO for the requested reservation
-     * @throws RuntimeException if the ID is invalid or the reservation does not exist
+     * @throws MissingDataException if the ID is invalid or the reservation does not exist
      */
     public ReservationDTO getByIdResponse(Long id) {
         validateId(id, "Reservation");
 
-        Reservation result = reservationRepository.findById(id).orElseThrow();
+        Reservation result = reservationRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
         
         return ReservationDTO.builder()
                 .numberOfPeople(result.getNumberOfPeople())
@@ -188,11 +190,11 @@ public class ReservationService {
      *
      * @param people the number of people in the reservation
      * @return list of ReservationDTOs matching the specified number of people
-     * @throws RuntimeException if the number of people is outside the valid range [1, 4]
+     * @throws MissingDataException if the number of people is outside the valid range [1, 4]
      */
     public List<ReservationDTO> getByNumberOfPeople(int people) {
         if (people < 1 || people > 4) {
-            throw new RuntimeException("Number of people must be between 1 and 4 people.");
+            throw new MissingDataException("Number of people must be between 1 and 4 people.");
         }
 
         return convertFromEntityListToDTOList(reservationRepository.findByNumberOfPeople(people));
@@ -204,11 +206,11 @@ public class ReservationService {
      *
      * @param nights the number of nights to filter by (must be >= 1)
      * @return list of ReservationDTOs with the specified number of nights
-     * @throws RuntimeException if the number of nights is less than 1
+     * @throws MissingDataException if the number of nights is less than 1
      */
     public List<ReservationDTO> getByNumberOfNight(int nights) {
         if (nights < 1) {
-            throw new RuntimeException("A reservation must be at least at 1 night.");
+            throw new MissingDataException("A reservation must be at least at 1 night.");
         }
 
         return convertFromEntityListToDTOList(reservationRepository.findByNumberOfNights(nights));
@@ -221,14 +223,14 @@ public class ReservationService {
      * @param people number of people in the reservation (must be 1-4)
      * @param night number of nights in the reservation (must be >= 1)
      * @return list of ReservationDTOs matching both filters
-     * @throws RuntimeException if validation fails for either parameter
+     * @throws MissingDataException if validation fails for either parameter
      */
     public List<ReservationDTO> getByPeopleAndNights(int people, int night) {
         if (people < 1 || people > 4) {
-            throw new RuntimeException("Number of people must be between 1 and 4 people.");
+            throw new MissingDataException("Number of people must be between 1 and 4 people.");
         }
         if (night < 1) {
-            throw new RuntimeException("A reservation must be at least at 1 night.");
+            throw new MissingDataException("A reservation must be at least at 1 night.");
         }
 
         return convertFromEntityListToDTOList(reservationRepository.findByNumberOfPeopleAndNumberOfNights(people, night));
@@ -240,11 +242,11 @@ public class ReservationService {
      *
      * @param date the minimum start date (exclusive)
      * @return list of ReservationDTOs starting after the specified date
-     * @throws RuntimeException if the date is null
+     * @throws MissingDataException if the date is null
      */
     public List<ReservationDTO> getByStartIn(LocalDate date) {
         if (date == null) {
-            throw new RuntimeException("Date cannot be null.");
+            throw new MissingDataException("Date cannot be null.");
         }
 
         return convertFromEntityListToDTOList(reservationRepository.findByStartAtGreaterThan(date));
@@ -256,11 +258,11 @@ public class ReservationService {
      *
      * @param date the maximum end date (exclusive)
      * @return list of ReservationDTOs ending before the specified date
-     * @throws RuntimeException if the date is null
+     * @throws MissingDataException if the date is null
      */
     public List<ReservationDTO> getByFinishIn(LocalDate date) {
         if (date == null) {
-            throw new RuntimeException("Date cannot be null.");
+            throw new MissingDataException("Date cannot be null.");
         }
 
         return convertFromEntityListToDTOList(reservationRepository.findByEndAtLessThan(date));
@@ -273,11 +275,11 @@ public class ReservationService {
      * @param start the lower bound for reservation start date (exclusive)
      * @param end the upper bound for reservation end date (exclusive)
      * @return list of ReservationDTOs within the specified date range
-     * @throws RuntimeException if either date is null
+     * @throws MissingDataException if either date is null
      */
     public List<ReservationDTO> getByBetweenDates(LocalDate start, LocalDate end) {
         if (start == null || end == null) {
-            throw new RuntimeException("Date cannot be null.");
+            throw new MissingDataException("Date cannot be null.");
         }
 
         return convertFromEntityListToDTOList(reservationRepository.findByStartAtGreaterThanAndEndAtLessThan(start, end));
@@ -289,11 +291,11 @@ public class ReservationService {
      *
      * @param roomId the ID of the room
      * @return list of ReservationDTOs for the specified room
-     * @throws RuntimeException if the ID is null or less than 1
+     * @throws MissingDataException if the ID is null or less than 1
      */
     public List<ReservationDTO> getByRoom(Long roomId) {
         if (roomId < 1) {
-            throw new RuntimeException("Id cannot be null.");
+            throw new MissingDataException("Id cannot be null.");
         }
 
         return convertFromEntityListToDTOList(reservationRepository.findByRoom(roomId));
@@ -305,11 +307,11 @@ public class ReservationService {
      *
      * @param clientId the ID of the client (person)
      * @return list of ReservationDTOs associated with the specified client
-     * @throws RuntimeException if the ID is null or less than 1
+     * @throws MissingDataException if the ID is null or less than 1
      */
     public List<ReservationDTO> getByClient(Long clientId) {
         if (clientId < 1) {
-            throw new RuntimeException("Id cannot be null.");
+            throw new MissingDataException("Id cannot be null.");
         }
 
         return convertFromEntityListToDTOList(reservationRepository.findByPerson(clientId));
@@ -324,13 +326,13 @@ public class ReservationService {
      * @param reservationId the ID of the reservation to update
      * @param dto the ReservationDTO containing the updated fields
      * @return the updated Reservation entity
-     * @throws RuntimeException if the reservation does not exist or if validation fails
+     * @throws MissingDataException if the reservation does not exist or if validation fails
      */
     @Transactional
     public Reservation update(Long reservationId, ReservationDTO dto) {
         validateId(reservationId, "Reservation");
 
-        Reservation reservationInDB = reservationRepository.findById(reservationId).orElseThrow();
+        Reservation reservationInDB = reservationRepository.findById(reservationId).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
         if (dto.getRoomBookedId() > 0) {
             validateIfTargetRoomIsReserved(dto.getRoomBookedId(), dto.getStartAt(), dto.getEndAt());
             Room room = roomService.getRoomById(dto.getRoomBookedId());
@@ -366,16 +368,16 @@ public class ReservationService {
      * Upon deletion, the room state is reset to FREE.
      *
      * @param reservationId the ID of the reservation to delete
-     * @throws RuntimeException if the reservation is currently active or does not exist
+     * @throws MissingDataException if the reservation is currently active or does not exist
      */
     @Transactional
     public void delete(Long reservationId) {
         validateId(reservationId, "Reservation");
 
-        Reservation reservation = reservationRepository.findById(reservationId).orElseThrow();
+        Reservation reservation = reservationRepository.findById(reservationId).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
 
         if (reservation.getStartAt().isBefore(LocalDate.now()) && reservation.getEndAt().isAfter(LocalDate.now())){
-            throw new RuntimeException("The reservation is actually available. Cannot be deleted.");
+            throw new MissingDataException("The reservation is actually available. Cannot be deleted.");
         }
         roomService.changeRoomState(reservation.getRoomBooked().getId(), RoomState.FREE);
 

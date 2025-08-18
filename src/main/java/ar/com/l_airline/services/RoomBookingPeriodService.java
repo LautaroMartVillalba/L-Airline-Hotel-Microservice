@@ -5,6 +5,8 @@ import ar.com.l_airline.domain.entities.Reservation;
 import ar.com.l_airline.domain.entities.Room;
 import ar.com.l_airline.domain.entities.RoomBookingPeriod;
 import ar.com.l_airline.domain.enums.RoomBookingStatus;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundInDatabaseException;
 import ar.com.l_airline.repositories.RoomBookingPeriodRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,30 +29,30 @@ public class RoomBookingPeriodService {
 
     private void validate(LocalDate startAt, LocalDate endAt, Long roomId, Long reservationId){
         if (startAt.isBefore(LocalDate.now()) || endAt.isBefore(LocalDate.now())){
-            throw new RuntimeException("Cannot create registers in the past.");
+            throw new MissingDataException("Cannot create registers in the past.");
         }
         if (roomId == null || roomId < 1 || reservationId == null || reservationId < 1){
-            throw new RuntimeException("Insert both room and reservation id numbers.");
+            throw new MissingDataException("Insert both room and reservation id numbers.");
         }
         if (startAt.isBefore(LocalDate.now()) || endAt.isBefore(startAt)){
-            throw new RuntimeException("Please, insert a valid reservation date.");
+            throw new MissingDataException("Please, insert a valid reservation date.");
         }
     }
 
     public RoomBookingPeriod getByIdObject (Long id){
         if (id == null || id < 1){
-            throw new RuntimeException("Insert a valid id.");
+            throw new MissingDataException("Insert a valid id.");
         }
 
-        return repository.findById(id).orElseThrow();
+        return repository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
     }
 
     public RoomBookingPeriodDTO getByIdResponse (Long id){
         if (id == null || id < 1){
-            throw new RuntimeException("Insert a valid id.");
+            throw new MissingDataException("Insert a valid id.");
         }
 
-        RoomBookingPeriod result = repository.findById(id).orElseThrow();
+        RoomBookingPeriod result = repository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
 
         return RoomBookingPeriodDTO.builder()
                 .startAt(result.getStartAt())
@@ -91,7 +93,7 @@ public class RoomBookingPeriodService {
 
     public List<RoomBookingPeriodDTO> getByStartAt(LocalDate startAt){
         if (startAt == null){
-            throw new RuntimeException("Date cannot be null.");
+            throw new MissingDataException("Date cannot be null.");
         }
 
         return convertEntityToDTO(repository.findByStartAtGreaterThan(startAt));
@@ -100,7 +102,7 @@ public class RoomBookingPeriodService {
     public List<RoomBookingPeriodDTO> getByEndAt(LocalDate endAt){
         if (endAt == null || endAt.isBefore(LocalDate.now())){
 
-            throw new RuntimeException("Date cannot be null.");
+            throw new MissingDataException("Date cannot be null.");
         }
 
         return convertEntityToDTO(repository.findByEndAtLessThan(endAt));
@@ -108,7 +110,7 @@ public class RoomBookingPeriodService {
 
     public List<RoomBookingPeriodDTO> getByStarAndEndBetween(LocalDate startAt, LocalDate endAt){
         if (startAt == null || endAt == null || endAt.isBefore(LocalDate.now()) || startAt.isAfter(endAt)){
-            throw new RuntimeException("Start date have to be before end date. Please, insert dates data correctly.");
+            throw new MissingDataException("Start date have to be before end date. Please, insert dates data correctly.");
         }
 
         return convertEntityToDTO(repository.findByStartAtGreaterThanAndEndAtLessThan(startAt, endAt));
@@ -116,7 +118,7 @@ public class RoomBookingPeriodService {
 
     public List<RoomBookingPeriodDTO> getByStatusRegister(RoomBookingStatus status){
         if (status == null){
-            throw new RuntimeException("Please, set a valid status.");
+            throw new MissingDataException("Please, set a valid status.");
         }
 
         return convertEntityToDTO(repository.findByStatus(status));
@@ -124,7 +126,7 @@ public class RoomBookingPeriodService {
 
     public List<RoomBookingPeriodDTO> getByRoomId(Long roomId){
         if (roomId == null || roomId < 1){
-            throw new RuntimeException("Insert a valid room id.");
+            throw new MissingDataException("Insert a valid room id.");
         }
 
         return convertEntityToDTO(repository.findByRoom(roomId));
@@ -177,13 +179,13 @@ public class RoomBookingPeriodService {
     @Transactional
     public void delete (Long id){
         if (id == null || id < 1){
-            throw new RuntimeException("Id cannot be null.");
+            throw new MissingDataException("Id cannot be null.");
         }
 
         RoomBookingPeriod resultInDB = this.getByIdObject(id);
 
         if (resultInDB.getStatus() == RoomBookingStatus.RESERVED || resultInDB.getStatus() == RoomBookingStatus.COMPLETED){
-            throw new RuntimeException("Only canceled or completes reservations register can be deleted.");
+            throw new MissingDataException("Only canceled or completes reservations register can be deleted.");
         }
 
         repository.delete(resultInDB);

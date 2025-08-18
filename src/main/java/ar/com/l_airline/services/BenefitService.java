@@ -3,6 +3,8 @@ package ar.com.l_airline.services;
 import ar.com.l_airline.domain.dto.BenefitDTO;
 import ar.com.l_airline.domain.entities.Benefit;
 import ar.com.l_airline.domain.entities.Hotel;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundInDatabaseException;
 import ar.com.l_airline.repositories.BenefitRepository;
 import ar.com.l_airline.repositories.HotelRepository;
 import org.springframework.stereotype.Service;
@@ -29,16 +31,16 @@ public class BenefitService {
     void validateInfo(String name, String description, LocalTime openAt, LocalTime closeAt){
 
         if (name.isBlank()){
-            throw new RuntimeException("Name cannot be null.");
+            throw new MissingDataException("Name cannot be null.");
         }
         if (description.isBlank()){
-            throw new RuntimeException("Description cannot be null.");
+            throw new MissingDataException("Description cannot be null.");
         }
         if (openAt == null){
-            throw new RuntimeException("Opening time cannot be null.");
+            throw new MissingDataException("Opening time cannot be null.");
         }
         if (closeAt == null){
-            throw new RuntimeException("Ending time cannot be null.");
+            throw new MissingDataException("Ending time cannot be null.");
         }
     }
 
@@ -66,12 +68,12 @@ public class BenefitService {
      *
      * @param dto the BenefitDTO with data to create the benefit
      * @return the persisted Benefit entity
-     * @throws RuntimeException if validation fails
+     * @throws MissingDataException if validation fails
      */
     @Transactional
     public Benefit createBenefit(BenefitDTO dto){
         validateInfo(dto.getName(), dto.getDescription(), dto.getOpenAt(), dto.getCloseAt());
-        Hotel hotel = hotelRepository.findById(dto.getHotelId()).orElseThrow();
+        Hotel hotel = hotelRepository.findById(dto.getHotelId()).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
 
         Benefit benefit = Benefit.builder()
                 .name(dto.getName())
@@ -90,14 +92,14 @@ public class BenefitService {
      *
      * @param id the unique identifier of the benefit
      * @return the BenefitDTO representation of the benefit
-     * @throws RuntimeException if the ID is invalid or the benefit does not exist
+     * @throws MissingDataException if the ID is invalid or the benefit does not exist
      */
     public BenefitDTO getBenefitByIdResponse(Long id){
         if (id == 0){
-            throw new RuntimeException("Insert a valid id number.");
+            throw new MissingDataException("Insert a valid id number.");
         }
 
-        Benefit result = benefitRepository.findById(id).orElseThrow();
+        Benefit result = benefitRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
 
         return BenefitDTO.builder()
                 .name(result.getName())
@@ -111,14 +113,14 @@ public class BenefitService {
     *
     * @param id the ID of the Benefit to retrieve
     * @return the Benefit entity with the given ID
-    * @throws RuntimeException if the provided ID is zero
+    * @throws MissingDataException if the provided ID is zero
     */
     public Benefit getBenefitByIdObject(Long id) {
         if (id == 0 || id < 1) {
-            throw new RuntimeException("Insert a valid id number.");
+            throw new MissingDataException("Insert a valid id number.");
         }
 
-        return benefitRepository.findById(id).orElseThrow();
+        return benefitRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
     }
 
     /**
@@ -126,11 +128,11 @@ public class BenefitService {
      *
      * @param name a partial or full name to search for
      * @return a list of matching BenefitDTOs, or an empty list if none found
-     * @throws RuntimeException if the provided name is blank
+     * @throws MissingDataException if the provided name is blank
      */
     public List<BenefitDTO> getBenefitByName(String name){
         if (name.isBlank()){
-            throw new RuntimeException("Name cannot be null.");
+            throw new MissingDataException("Name cannot be null.");
         }
 
         return parseBenefitListToBenefitDTOList(benefitRepository.findByNameContaining(name));
@@ -141,11 +143,11 @@ public class BenefitService {
      *
      * @param desc a partial or full description to search for
      * @return a list of matching BenefitDTOs, or an empty list if none found
-     * @throws RuntimeException if the provided description is blank
+     * @throws MissingDataException if the provided description is blank
      */
     public List<BenefitDTO> getBenefitByDescription(String desc){
         if (desc.isBlank()){
-            throw new RuntimeException("Description cannot be null.");
+            throw new MissingDataException("Description cannot be null.");
         }
 
         return parseBenefitListToBenefitDTOList(benefitRepository.findByDescriptionContaining(desc));
@@ -156,11 +158,11 @@ public class BenefitService {
      *
      * @param opening the minimum opening time (exclusive)
      * @return a list of BenefitDTOs with later opening times
-     * @throws RuntimeException if the provided opening time is null
+     * @throws MissingDataException if the provided opening time is null
      */
     public List<BenefitDTO> getBenefitByOpening(LocalTime opening){
         if (opening == null){
-            throw new RuntimeException("Opening time cannot be null.");
+            throw new MissingDataException("Opening time cannot be null.");
         }
 
         return parseBenefitListToBenefitDTOList(benefitRepository.findByOpenAtGreaterThan(opening));
@@ -171,11 +173,11 @@ public class BenefitService {
      *
      * @param ending the maximum closing time (exclusive)
      * @return a list of BenefitDTOs with earlier closing times
-     * @throws RuntimeException if the provided ending time is null
+     * @throws MissingDataException if the provided ending time is null
      */
     public List<BenefitDTO> getBenefitByEnding(LocalTime ending){
         if (ending == null){
-            throw new RuntimeException("ending time cannot be null.");
+            throw new MissingDataException("ending time cannot be null.");
         }
 
         return parseBenefitListToBenefitDTOList(benefitRepository.findByCloseAtLessThan(ending));
@@ -187,11 +189,11 @@ public class BenefitService {
      * @param open the minimum opening time (inclusive)
      * @param close the maximum closing time (inclusive)
      * @return a list of BenefitDTOs within the specified time range
-     * @throws RuntimeException if either open or close time is null
+     * @throws MissingDataException if either open or close time is null
      */
     public List<BenefitDTO> getByOpenBetween(LocalTime open, LocalTime close){
         if (open == null || close == null){
-            throw new RuntimeException("Both ending or opening cannot be null.");
+            throw new MissingDataException("Both ending or opening cannot be null.");
         }
 
         return parseBenefitListToBenefitDTOList(benefitRepository.findByOpenAtGreaterThanEqualAndCloseAtLessThanEqual(open, close));
@@ -202,11 +204,11 @@ public class BenefitService {
      *
      * @param hotelId the ID of the hotel whose benefits are to be retrieved
      * @return a list of BenefitDTOs linked to the given hotel
-     * @throws RuntimeException if the hotel ID is null
+     * @throws MissingDataException if the hotel ID is null
      */
     public List<BenefitDTO> getByHotelId(Long hotelId){
         if (hotelId == null){
-            throw new RuntimeException("Id cannot be null");
+            throw new MissingDataException("Id cannot be null");
         }
 
         return parseBenefitListToBenefitDTOList(benefitRepository.findByHotel(hotelId));
@@ -220,7 +222,7 @@ public class BenefitService {
      * @param id the ID of the Benefit to update
      * @param dto the DTO containing the updated data
      * @return the updated Benefit entity
-     * @throws RuntimeException if the benefit does not exist or validation fails
+     * @throws MissingDataException if the benefit does not exist or validation fails
      */
     @Transactional
     public Benefit updateBenefit(Long id, BenefitDTO dto){
@@ -254,14 +256,14 @@ public class BenefitService {
      * (i.e., the current time is between its opening and closing times).
      *
      * @param id the ID of the Benefit to delete
-     * @throws RuntimeException if the benefit is active or does not exist
+     * @throws MissingDataException if the benefit is active or does not exist
      */
     @Transactional
     public void deleteBenefitById(Long id){
         Benefit benefitInDB = this.getBenefitByIdObject(id);
 
         if (benefitInDB.getOpenAt().isBefore(LocalTime.now()) && benefitInDB.getCloseAt().isAfter(LocalTime.now())){
-            throw new RuntimeException("Cannot delete a Benefit when is working.");
+            throw new MissingDataException("Cannot delete a Benefit when is working.");
         }
 
         benefitRepository.deleteById(id);

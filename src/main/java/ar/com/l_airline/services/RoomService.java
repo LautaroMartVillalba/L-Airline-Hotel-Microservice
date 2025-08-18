@@ -8,6 +8,9 @@ import ar.com.l_airline.domain.entities.RoomBookingPeriod;
 import ar.com.l_airline.domain.enums.BedsType;
 import ar.com.l_airline.domain.enums.RoomState;
 import ar.com.l_airline.domain.enums.RoomType;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.ConflictStateException;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundInDatabaseException;
 import ar.com.l_airline.repositories.HotelRepository;
 import ar.com.l_airline.repositories.ReservationRepository;
 import ar.com.l_airline.repositories.RoomRepository;
@@ -15,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -45,30 +47,30 @@ public class RoomService {
 
     /**
      * Validates a {@link RoomDTO} based on room business constraints.
-     * Throws {@link RuntimeException} if any validation rule is violated.
+     * Throws {@link MissingDataException} if any validation rule is violated.
      *
      * @param room the DTO containing room data to validate
      */
     private void checkIfRoomIsValid(RoomDTO room){
         if (room.getNumberOfBeds() <= MIN_BEDS || room.getNumberOfBeds() > MAX_BEDS){
-            throw new RuntimeException("Rooms only can have 1 to 4 beds.");
+            throw new MissingDataException("Rooms only can have 1 to 4 beds.");
         }
         if (room.getPeopleCapacity() <= MIN_PEOPLE || room.getPeopleCapacity() > MAX_PEOPLE){
-            throw new RuntimeException("Rooms only accept 1 to 4 people.");
+            throw new MissingDataException("Rooms only accept 1 to 4 people.");
         }
         if (room.getRoomType() == null){
-            throw new RuntimeException("Room category cannot be null.");
+            throw new MissingDataException("Room category cannot be null.");
         }
         //If you see a warning here, it is because of your IDE.
         if (room.getBedType().equals(BedsType.KING_BED) && room.getNumberOfBeds() != 1){
-            throw new RuntimeException("Only one king bed per room.");
+            throw new MissingDataException("Only one king bed per room.");
         }
         //If you see a warning here, it is because of your IDE.
         if (room.getBedType().equals(BedsType.QUEEN_BED) && room.getNumberOfBeds() != 1){
-            throw new RuntimeException("Only one queen bed per room.");
+            throw new MissingDataException("Only one queen bed per room.");
         }
         if (room.getBedType().equals(BedsType.DOUBLE_BED) && room.getNumberOfBeds() > 2){
-            throw new RuntimeException("Only two double bed per room.");
+            throw new MissingDataException("Only two double bed per room.");
         }
     }
 
@@ -124,7 +126,7 @@ public class RoomService {
      * @return DTO containing room data
      */
     public RoomDTO getRoomByIdResponse(Long id){
-        Room result = roomRepository.findById(id).orElseThrow(RuntimeException::new);
+        Room result = roomRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
 
         return RoomDTO.builder()
                 .id(result.getId())
@@ -142,7 +144,7 @@ public class RoomService {
      * @return the Room entity
      */
     public Room getRoomById(Long id){
-        return roomRepository.findById(id).orElseThrow(RuntimeException::new);
+        return roomRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
     }
 
     /**
@@ -153,7 +155,7 @@ public class RoomService {
      */
     public List<RoomDTO> getRoomsByBedsNumber(int number){
         if (number < 1 || number > 4){
-            throw new RuntimeException("No room will have less than 1 bed or more than 4 beds.");
+            throw new MissingDataException("No room will have less than 1 bed or more than 4 beds.");
         }
 
         List<Room> result = roomRepository.findByNumberOfBeds(number);
@@ -174,10 +176,6 @@ public class RoomService {
     public List<RoomDTO> getRoomsByBedsTypes(BedsType bedsType){
         List<Room> result = roomRepository.findByBedType(bedsType);
 
-        if (result.isEmpty()){
-            return Collections.emptyList();
-        }
-
         return parseFromRoomListToRoomDTOList(result);
     }
 
@@ -189,7 +187,7 @@ public class RoomService {
      */
     public List<RoomDTO> getRoomsByPeopleCapacity(int people){
         if (people < 1 || people > 4){
-            throw new RuntimeException("A room only can accommodate between 1 and 4 people over 13 years old.");
+            throw new MissingDataException("A room only can accommodate between 1 and 4 people over 13 years old.");
         }
         List<Room> result = roomRepository.findByPeopleCapacity(people);
 
@@ -208,7 +206,7 @@ public class RoomService {
      */
     public List<RoomDTO> getRoomsByRoomType(RoomType roomType){
         if (roomType == null){
-            throw new RuntimeException("You must search a valid type of room.");
+            throw new MissingDataException("You must search a valid type of room.");
         }
 
         List<Room> result = roomRepository.findByRoomType(roomType);
@@ -228,7 +226,7 @@ public class RoomService {
      */
     public List<RoomDTO> getRoomsByState(RoomState state){
         if (state == null){
-            throw new RuntimeException("You must search a valid room state.");
+            throw new MissingDataException("You must search a valid room state.");
         }
 
         List<Room> result = roomRepository.findByState(state);
@@ -246,11 +244,11 @@ public class RoomService {
      * @param hotelId the ID of the hotel to filter rooms by
      * @return a list of RoomDTOs that belong to the specified hotel;
      *         returns an empty list if no rooms are found
-     * @throws RuntimeException if the provided hotelId is null
+     * @throws MissingDataException if the provided hotelId is null
      */
     List<RoomDTO> getByHotelId(Long hotelId){
         if(hotelId == null){
-            throw new RuntimeException("Id cannot be null");
+            throw new MissingDataException("Id cannot be null");
         }
 
         List<Room> result = roomRepository.findByHotel(hotelId);
@@ -264,7 +262,7 @@ public class RoomService {
 
     public List<RoomDTO> getFreeRoomsByScheduleBetween(LocalDate startAt, LocalDate endAt){
         if (startAt == null || endAt == null || startAt.isBefore(LocalDate.now()) || endAt.isBefore(startAt)){
-            throw new RuntimeException("Insert correct date, please.");
+            throw new MissingDataException("Insert correct date, please.");
         }
 
         return parseFromRoomListToRoomDTOList(roomRepository.findByAvailableRoom(startAt, endAt));
@@ -276,11 +274,11 @@ public class RoomService {
      * @param reservationId the ID of the reservation to filter rooms by
      * @return a list of RoomDTOs that are linked to the specified reservation;
      *         returns an empty list if no rooms are found
-     * @throws RuntimeException if the provided reservationId is null
+     * @throws MissingDataException if the provided reservationId is null
      */
     List<RoomDTO> getByReservationId(Long reservationId){
         if(reservationId == null){
-            throw new RuntimeException("Id cannot be null");
+            throw new MissingDataException("Id cannot be null");
         }
 
         List<Room> result = roomRepository.findByReservation(reservationId);
@@ -342,7 +340,7 @@ public class RoomService {
     @Transactional
     public void changeRoomState(Long roomId, RoomState state){
         if (roomId == null || state == null){
-            throw new RuntimeException("Insert all data to update room state");
+            throw new MissingDataException("Insert all data to update room state");
         }
 
         Room roomInDb = this.getRoomById(roomId);
@@ -364,7 +362,7 @@ public class RoomService {
             roomRepository.deleteById(roomId);
         }
         else {
-            throw new RuntimeException("Cannot delete a room if it not free.");
+            throw new ConflictStateException("Cannot delete a room if it not free.");
         }
     }
 }

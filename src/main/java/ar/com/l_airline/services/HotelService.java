@@ -5,6 +5,7 @@ import ar.com.l_airline.domain.entities.Attraction;
 import ar.com.l_airline.domain.entities.Benefit;
 import ar.com.l_airline.domain.entities.Hotel;
 import ar.com.l_airline.domain.entities.Room;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
 import ar.com.l_airline.repositories.HotelRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,13 +36,13 @@ public class HotelService {
 
     private void validateInfo(String name, int totalRooms, String phoneNumber){
         if(name.isBlank()){
-            throw new RuntimeException("Hotel name cannot be null.");
+            throw new MissingDataException("Hotel name cannot be null.");
         }
         if (totalRooms <1){
-            throw new RuntimeException("A hotel must have at leas one room.");
+            throw new MissingDataException("A hotel must have at leas one room.");
         }
         if (phoneNumber == null || phoneNumber.isBlank()){
-            throw new RuntimeException("Hotel's contact cell phone number cannot be null.");
+            throw new MissingDataException("Hotel's contact cell phone number cannot be null.");
         }
     }
 
@@ -128,14 +129,14 @@ public class HotelService {
      *
      * @param id The ID of the hotel to retrieve
      * @return A HotelDTO representing the retrieved hotel
-     * @throws RuntimeException if the ID is less than or equal to 0, or if the hotel is not found
+     * @throws MissingDataException if the ID is less than or equal to 0, or if the hotel is not found
      */
     public HotelDTO getHotelByIdDTO(Long id){
         if (id <= 0){
-            throw new RuntimeException("Id cannot be null");
+            throw new MissingDataException("Id cannot be null");
         }
 
-        Hotel hotelInDb = hotelRepository.findById(id).orElseThrow();
+        Hotel hotelInDb = hotelRepository.findById(id).orElseThrow(() -> new MissingDataException("Register not found in the DataBase."));
 
         List<Long> roomIdList = new ArrayList<>();
         List<Long> attractionIdList = new ArrayList<>();
@@ -159,14 +160,14 @@ public class HotelService {
      *
      * @param id The ID of the hotel to retrieve
      * @return The corresponding Hotel entity
-     * @throws RuntimeException if the ID is invalid or the hotel does not exist
+     * @throws MissingDataException if the ID is invalid or the hotel does not exist
      */
     public Hotel getHotelByIdObject(Long id){
         if (id <= 0){
-            throw new RuntimeException("Id cannot be null");
+            throw new MissingDataException("Id cannot be null");
         }
 
-        return hotelRepository.findById(id).orElseThrow();
+        return hotelRepository.findById(id).orElseThrow(() -> new MissingDataException("Register not found in the Database"));
     }
 
     /**
@@ -175,11 +176,11 @@ public class HotelService {
      *
      * @param stars The star rating to filter hotels by
      * @return List of HotelDTOs matching the given star rating; empty if none found
-     * @throws RuntimeException if the star rating is less than or equal to zero
+     * @throws MissingDataException if the star rating is less than or equal to zero
      */
     public List<HotelDTO> getHotelByStars(double stars){
         if (stars <= 0){
-            throw new RuntimeException("Stars rating cannot be less than zero.");
+            throw new MissingDataException("Stars rating cannot be less than zero.");
         }
 
         return convertFromHotelListToHotelDTOList(hotelRepository.findByStars(stars));
@@ -191,11 +192,11 @@ public class HotelService {
      *
      * @param name Partial or full hotel name
      * @return List of HotelDTOs matching the name criteria
-     * @throws RuntimeException if the name is blank
+     * @throws MissingDataException if the name is blank
      */
     public List<HotelDTO> getHotelByName(String name){
         if (name.isBlank()){
-            throw new RuntimeException("Name cannot be null.");
+            throw new MissingDataException("Name cannot be null.");
         }
 
         return convertFromHotelListToHotelDTOList(hotelRepository.findByNameContaining(name));
@@ -207,11 +208,11 @@ public class HotelService {
      *
      * @param benefitsName The benefit name to search for (supports partial match)
      * @return List of HotelDTOs with matching benefits
-     * @throws RuntimeException if the benefit name is blank
+     * @throws MissingDataException if the benefit name is blank
      */
     public List<HotelDTO> getHotelByBenefits(String benefitsName){
         if (benefitsName.isBlank()){
-            throw new RuntimeException("Name cannot be null.");
+            throw new MissingDataException("Name cannot be null.");
         }
 
         return convertFromHotelListToHotelDTOList(hotelRepository.findByBenefits(benefitsName));
@@ -222,11 +223,11 @@ public class HotelService {
      *
      * @param attractionName Name of the attraction (partial match supported)
      * @return List of HotelDTOs related to the attraction
-     * @throws RuntimeException if the name is blank
+     * @throws MissingDataException if the name is blank
      */
     public List<HotelDTO> getHotelByAttraction(String attractionName){
         if (attractionName.isBlank()){
-            throw new RuntimeException("Name cannot be null.");
+            throw new MissingDataException("Name cannot be null.");
         }
 
         return convertFromHotelListToHotelDTOList(hotelRepository.findByAttractions(attractionName));
@@ -239,7 +240,7 @@ public class HotelService {
      * @param id  The ID of the hotel to update
      * @param dto DTO containing the new hotel values
      * @return The updated Hotel entity
-     * @throws RuntimeException if the resulting hotel state is invalid
+     * @throws MissingDataException if the resulting hotel state is invalid
      */
     @Transactional
     public Hotel updateHotelWithoutModifyBenefitsRoomsOrAttractions(Long id, HotelDTO dto){
@@ -266,18 +267,18 @@ public class HotelService {
      * Deletes a hotel by its ID, only if it has no active (reserved) rooms.
      *
      * @param id The ID of the hotel to delete
-     * @throws RuntimeException if the ID is null or if there are active reservations
+     * @throws MissingDataException if the ID is null or if there are active reservations
      */
     @Transactional
     public void deleteHotel(Long id){
         if (id == null || id < 1){
-            throw new RuntimeException("Id cannot be null");
+            throw new MissingDataException("Id cannot be null");
         }
 
         Hotel hotelInDb = this.getHotelByIdObject(id);
 
         if (hotelInDb.getReservedRooms() > 0){
-            throw new RuntimeException("Cannot delete a Hotel entity when have active clients.");
+            throw new MissingDataException("Cannot delete a Hotel entity when have active clients.");
         }
 
         hotelRepository.delete(hotelInDb);

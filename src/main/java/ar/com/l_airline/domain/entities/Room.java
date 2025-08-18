@@ -62,7 +62,7 @@ public class Room {
     @NotNull
     private RoomState state;
     @NotNull
-    private int timeWasBooked;
+    private Long timesBooked;
     @NotNull
     @ManyToOne
     @JoinColumn(name = "hotel_id", referencedColumnName = "id")

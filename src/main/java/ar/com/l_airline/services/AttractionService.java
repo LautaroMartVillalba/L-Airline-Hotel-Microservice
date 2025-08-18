@@ -3,18 +3,15 @@ package ar.com.l_airline.services;
 import ar.com.l_airline.domain.dto.AttractionDTO;
 import ar.com.l_airline.domain.entities.Attraction;
 import ar.com.l_airline.domain.entities.Hotel;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundInDatabaseException;
 import ar.com.l_airline.repositories.AttractionRepository;
 import ar.com.l_airline.repositories.HotelRepository;
-import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.w3c.dom.Attr;
 
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Service class responsible for handling business logic related to {@link Attraction}.
@@ -34,19 +31,19 @@ public class AttractionService {
 
     private void validateInfo(String name, String description, int peopleCapacity, LocalTime openAt, LocalTime closeAt){
         if (name == null || name.isBlank()) {
-            throw new RuntimeException("Attraction name cannot be null.");
+            throw new MissingDataException("Insert the attraction name.");
         }
         if (description == null || description.isBlank()) {
-            throw new RuntimeException("Attraction description cannot be null.");
+            throw new MissingDataException("Insert the description name.");
         }
         if (peopleCapacity < 1) {
-            throw new RuntimeException("At least the attraction must be capable to be used by one person.");
+            throw new MissingDataException("At least the attraction must be capable to be used by one person.");
         }
         if (openAt == null) {
-            throw new RuntimeException("Attraction opening cannot be null.");
+            throw new MissingDataException("Attraction opening cannot be null.");
         }
         if (closeAt == null) {
-            throw new RuntimeException("Attraction ending cannot be null.");
+            throw new MissingDataException("Attraction ending cannot be null.");
         }
     }
 
@@ -76,13 +73,13 @@ public class AttractionService {
      * @param dto data transfer object containing attraction details
      * @param hotelId ID of the hotel the attraction belongs to
      * @return the persisted Attraction entity
-     * @throws RuntimeException if validation fails or hotel does not exist
+     * @throws MissingDataException if validation fails or hotel does not exist
      */
     @Transactional
     public Attraction createAttraction(AttractionDTO dto, Long hotelId) {
         validateInfo(dto.getName(), dto.getDescription(), dto.getPeopleCapacity(), dto.getOpenAt(), dto.getCloseAt());
 
-        Hotel hotel = hotelRepository.findById(hotelId).orElseThrow();
+        Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
 
         Attraction attraction = Attraction.builder()
                 .name(dto.getName())
@@ -101,38 +98,35 @@ public class AttractionService {
      *
      * @param id the attraction ID
      * @return DTO representing the attraction
-     * @throws RuntimeException if the ID is invalid or attraction is not found
+     * @throws MissingDataException if the ID is invalid or attraction is not found
      */
     public AttractionDTO getAttractionByIdDTO(Long id) {
-        if (id <= 0) {
-            throw new RuntimeException("Id cannot be null.");
+        if (id == null || id < 1) {
+            throw new MissingDataException("Id cannot be null.");
         }
 
-        Optional<Attraction> attractionInDB = attractionRepository.findById(id);
-        if (attractionInDB.isEmpty()){
-            throw new RuntimeException("Attraction cannot be found by id.");
-        }
-        Attraction attraction = attractionInDB.get();
+        Attraction attractionInDB = attractionRepository.findById(id).orElseThrow(()-> new NotFoundInDatabaseException("Attraction cannot be found by id."));
+
         return AttractionDTO.builder()
-                .name(attraction.getName())
-                .description(attraction.getDescription())
-                .peopleCapacity(attraction.getPeopleCapacity())
-                .openAt(attraction.getOpenAt())
-                .closeAt(attraction.getCloseAt()).build();
+                .name(attractionInDB.getName())
+                .description(attractionInDB.getDescription())
+                .peopleCapacity(attractionInDB.getPeopleCapacity())
+                .openAt(attractionInDB.getOpenAt())
+                .closeAt(attractionInDB.getCloseAt()).build();
     }
     /**
      * Retrieves an attraction entity by ID.
      *
      * @param id the attraction ID
      * @return an Optional containing the Attraction if found, or empty otherwise
-     * @throws RuntimeException if the ID is invalid
+     * @throws MissingDataException if the ID is invalid
      */
     public Attraction getAttractionByIdObject(Long id) {
         if (id <= 0) {
-            throw new RuntimeException("Id cannot be null.");
+            throw new MissingDataException("Id cannot be null.");
         }
 
-        return attractionRepository.findById(id).orElseThrow();
+        return attractionRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
     }
 
     /**
@@ -140,11 +134,11 @@ public class AttractionService {
      *
      * @param name substring to match
      * @return a list of matching AttractionDTOs, or an empty list if none are found
-     * @throws RuntimeException if the name is blank
+     * @throws MissingDataException if the name is blank
      */
     public List<AttractionDTO> getAttractionByName(String name) {
         if (name.isBlank()) {
-            throw new RuntimeException("Name parameter cannot be empty.");
+            throw new MissingDataException("Name parameter cannot be empty.");
         }
 
         return parseFromAttractionListToAttractionDTOList(attractionRepository.findByNameContaining(name));
@@ -155,11 +149,11 @@ public class AttractionService {
      *
      * @param desc substring to match
      * @return a list of matching AttractionDTOs, or an empty list if none are found
-     * @throws RuntimeException if the description is blank
+     * @throws MissingDataException if the description is blank
      */
     List<AttractionDTO> getAttractionByDesc(String desc) {
         if (desc.isBlank()) {
-            throw new RuntimeException("Description cannot be null.");
+            throw new MissingDataException("Description cannot be null.");
         }
 
         return parseFromAttractionListToAttractionDTOList(attractionRepository.findByDescriptionContaining(desc));
@@ -171,11 +165,11 @@ public class AttractionService {
      * @param min the minimum allowed people capacity
      * @param max the maximum allowed people capacity
      * @return a list of matching AttractionDTOs, or an empty list if none are found
-     * @throws RuntimeException if provided values are invalid or logically inconsistent
+     * @throws MissingDataException if provided values are invalid or logically inconsistent
      */
     List<AttractionDTO> getAttractionByCapacity(int min, int max) {
         if (min <= 0 || min > max) {
-            throw new RuntimeException("Insert valid minimum and maximum values.");
+            throw new MissingDataException("Insert valid minimum and maximum values.");
         }
 
         return parseFromAttractionListToAttractionDTOList(attractionRepository.findByPeopleCapacityBetween(min, max));
@@ -186,11 +180,11 @@ public class AttractionService {
      *
      * @param time the lower bound for opening time
      * @return a list of AttractionDTOs, or an empty list if none are found
-     * @throws RuntimeException if the input time is null
+     * @throws MissingDataException if the input time is null
      */
     List<AttractionDTO> getAttractionByOpening(LocalTime time) {
         if (time == null) {
-            throw new RuntimeException("Invalid time format.");
+            throw new MissingDataException("Invalid time format.");
         }
 
         return parseFromAttractionListToAttractionDTOList(attractionRepository.findByOpenAtGreaterThan(time));
@@ -201,11 +195,11 @@ public class AttractionService {
      *
      * @param time the upper bound for closing time
      * @return a list of AttractionDTOs, or an empty list if none are found
-     * @throws RuntimeException if the input time is null
+     * @throws MissingDataException if the input time is null
      */
     List<AttractionDTO> getAttractionByEnding(LocalTime time) {
         if (time == null) {
-            throw new RuntimeException("Invalid time format.");
+            throw new MissingDataException("Invalid time format.");
         }
 
         return parseFromAttractionListToAttractionDTOList(attractionRepository.findByCloseAtLessThan(time));
@@ -218,11 +212,11 @@ public class AttractionService {
      * @param opening minimum allowed opening time (inclusive)
      * @param ending maximum allowed closing time (inclusive)
      * @return a list of matching AttractionDTOs, or an empty list if none match
-     * @throws RuntimeException if any time input is null
+     * @throws MissingDataException if any time input is null
      */
     List<AttractionDTO> getAttractionBetweenOpeningAndEnding(LocalTime opening, LocalTime ending) {
         if (opening == null || ending == null) {
-            throw new RuntimeException("Invalid time format.");
+            throw new MissingDataException("Invalid time format.");
         }
 
         return parseFromAttractionListToAttractionDTOList(attractionRepository.findByOpenAtGreaterThanEqualAndCloseAtLessThanEqual(opening, ending));
@@ -233,11 +227,11 @@ public class AttractionService {
      *
      * @param hotelId the ID of the hotel
      * @return list of AttractionDTOs, or empty if none are found
-     * @throws RuntimeException if the hotel ID is null
+     * @throws MissingDataException if the hotel ID is null
      */
     List<AttractionDTO> getByHotelId(Long hotelId){
         if (hotelId == null){
-            throw new RuntimeException("Id cannot be null.");
+            throw new MissingDataException("Id cannot be null.");
         }
 
         return parseFromAttractionListToAttractionDTOList(attractionRepository.findByHotel(hotelId));
@@ -249,11 +243,11 @@ public class AttractionService {
      * @param id the ID of the attraction to update
      * @param dto the DTO containing fields to update
      * @return the updated Attraction entity
-     * @throws RuntimeException if the attraction is not found or fails validation
+     * @throws MissingDataException if the attraction is not found or fails validation
      */
     @Transactional
     Attraction updateAttraction(Long id, AttractionDTO dto) {
-        Attraction attractionInDB = attractionRepository.findById(id).orElseThrow();
+        Attraction attractionInDB = attractionRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the Database."));
 
         if (dto.getName() != null && !dto.getName().isBlank()) {
             attractionInDB.setName(dto.getName());
@@ -285,7 +279,7 @@ public class AttractionService {
      * Deletes an attraction if it is not currently active based on current time.
      *
      * @param id the ID of the attraction to delete
-     * @throws RuntimeException if the attraction is not found or is currently active
+     * @throws MissingDataException if the attraction is not found or is currently active
      */
     @Transactional
     public void deleteAttraction(Long id) {
@@ -295,7 +289,7 @@ public class AttractionService {
         LocalTime ending = attractionInDB.getCloseAt();
 
         if (opening.isBefore(LocalTime.now()) && ending.isAfter(LocalTime.now())){
-            throw new RuntimeException("Cannot delete an attraction when is working.");
+            throw new MissingDataException("Cannot delete an attraction when is working.");
         }
 
         attractionRepository.deleteById(id);

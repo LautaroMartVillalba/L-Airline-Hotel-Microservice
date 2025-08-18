@@ -3,6 +3,8 @@ package ar.com.l_airline.services;
 import ar.com.l_airline.domain.dto.PersonDTO;
 import ar.com.l_airline.domain.entities.Person;
 import ar.com.l_airline.domain.entities.Reservation;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
+import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundInDatabaseException;
 import ar.com.l_airline.repositories.PersonRepository;
 import ar.com.l_airline.repositories.ReservationRepository;
 import org.springframework.stereotype.Service;
@@ -10,8 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-
-import static java.util.stream.Collectors.toList;
 
 /**
  * Service class responsible for managing Person-related operations.
@@ -36,14 +36,14 @@ public class PersonService {
      * @param email the email address of the person
      * @param age the age of the person
      * @param cellPhone the cell phone number of the person
-     * @throws RuntimeException if any of the required parameters are blank or age is under 18
+     * @throws MissingDataException if any of the required parameters are blank or age is under 18
      */
     private void validatePerson(String name, String dni, String email, int age, String cellPhone){
         if (age < 18){
-            throw new RuntimeException("Only an adult can reservate a room.");
+            throw new MissingDataException("Only an adult can reservate a room.");
         }
         if (name.isBlank() || dni.isBlank() || email.isBlank() || cellPhone.isBlank()){
-            throw new RuntimeException("Name, DNI, Email and Cell Phone Number are mandatory parameters.");
+            throw new MissingDataException("Name, DNI, Email and Cell Phone Number are mandatory parameters.");
         }
     }
 
@@ -75,7 +75,7 @@ public class PersonService {
      *
      * @param dto the data transfer object containing person data
      * @return the persisted Person entity
-     * @throws RuntimeException if validation fails
+     * @throws MissingDataException if validation fails
      */
     @Transactional
     public Person createPerson (PersonDTO dto){
@@ -99,14 +99,14 @@ public class PersonService {
      *
      * @param id the ID of the person
      * @return the PersonDTO corresponding to the given ID
-     * @throws RuntimeException if the ID is null or not found
+     * @throws MissingDataException if the ID is null or not found
      */
     public PersonDTO getPersonByIdDTO (Long id){
         if (id == null){
-            throw new RuntimeException("Id parameter cannot be null.");
+            throw new MissingDataException("Id parameter cannot be null.");
         }
 
-        Person result = personRepository.findById(id).orElseThrow();
+        Person result = personRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
 
         return PersonDTO.builder()
                 .name(result.getName())
@@ -121,11 +121,11 @@ public class PersonService {
      *
      * @param id the ID of the person
      * @return an Optional containing the Person entity if found
-     * @throws RuntimeException if the ID is null
+     * @throws MissingDataException if the ID is null
      */
     public Optional<Person> getPersonByIdObject (Long id){
         if (id == null){
-            throw new RuntimeException("Id parameter cannot be null.");
+            throw new MissingDataException("Id parameter cannot be null.");
         }
 
         return personRepository.findById(id);
@@ -136,11 +136,11 @@ public class PersonService {
      *
      * @param email the partial or full email to search
      * @return a list of PersonDTOs matching the given email
-     * @throws RuntimeException if the email is blank
+     * @throws MissingDataException if the email is blank
      */
     public List<PersonDTO> getPersonByEmail (String email){
         if (email.isBlank()){
-            throw new RuntimeException("Email parameter cannot be null.");
+            throw new MissingDataException("Email parameter cannot be null.");
         }
 
         return convertFromPersonListToPersonDTOList(personRepository.findByEmailContaining(email));
@@ -151,11 +151,11 @@ public class PersonService {
      *
      * @param DNI the partial or full DNI to search
      * @return a list of PersonDTOs matching the given DNI
-     * @throws RuntimeException if the DNI is blank
+     * @throws MissingDataException if the DNI is blank
      */
     public List<PersonDTO> getPersonByDNI (String DNI){
         if (DNI.isBlank()){
-            throw new RuntimeException("DNI parameter cannot be null.");
+            throw new MissingDataException("DNI parameter cannot be null.");
         }
 
         return convertFromPersonListToPersonDTOList(personRepository.findByDniContaining(DNI));
@@ -166,11 +166,11 @@ public class PersonService {
      *
      * @param name the name substring to search
      * @return list of matching PersonDTOs
-     * @throws RuntimeException if name is blank
+     * @throws MissingDataException if name is blank
      */
     public List<PersonDTO> getPersonByName (String name){
         if (name.isBlank()){
-            throw new RuntimeException("Name parameter cannot be null.");
+            throw new MissingDataException("Name parameter cannot be null.");
         }
 
         return convertFromPersonListToPersonDTOList(personRepository.findByNameContaining(name));
@@ -181,11 +181,11 @@ public class PersonService {
      *
      * @param cellPhoneNumber the phone number substring to search
      * @return list of matching PersonDTOs
-     * @throws RuntimeException if the phone number is blank
+     * @throws MissingDataException if the phone number is blank
      */
     public List<PersonDTO> getPersonByCellphone (String cellPhoneNumber){
         if (cellPhoneNumber.isBlank()){
-            throw new RuntimeException("Cellphone number parameter cannot be null.");
+            throw new MissingDataException("Cellphone number parameter cannot be null.");
         }
 
         return convertFromPersonListToPersonDTOList(personRepository.findByCellPhoneContaining(cellPhoneNumber));
@@ -196,11 +196,11 @@ public class PersonService {
      *
      * @param numberOfReservations exact reservation count to match
      * @return list of matching PersonDTOs
-     * @throws RuntimeException if number is negative
+     * @throws MissingDataException if number is negative
      */
     public List<PersonDTO> getPersonByReservations (int numberOfReservations){
         if (numberOfReservations < 0){
-            throw new RuntimeException("Number of reservations must be at least zero.");
+            throw new MissingDataException("Number of reservations must be at least zero.");
         }
 
         return convertFromPersonListToPersonDTOList(personRepository.findByNumberOfReservations(numberOfReservations));
@@ -211,11 +211,11 @@ public class PersonService {
      *
      * @param numberOfReservations minimum exclusive number of reservations
      * @return list of matching PersonDTOs
-     * @throws RuntimeException if number is negative
+     * @throws MissingDataException if number is negative
      */
     public List<PersonDTO> getPersonByReservationsGreaterThan (int numberOfReservations){
         if (numberOfReservations < 0){
-            throw new RuntimeException("Number of reservations must be at least zero.");
+            throw new MissingDataException("Number of reservations must be at least zero.");
         }
 
         return convertFromPersonListToPersonDTOList(personRepository.findByNumberOfReservationsGreaterThan(numberOfReservations));
@@ -226,11 +226,11 @@ public class PersonService {
      *
      * @param numberOfReservations maximum exclusive number of reservations
      * @return list of matching PersonDTOs
-     * @throws RuntimeException if number is negative
+     * @throws MissingDataException if number is negative
      */
     public List<PersonDTO> getPersonByReservationsLessThan (int numberOfReservations){
         if (numberOfReservations < 0){
-            throw new RuntimeException("Number of reservations must be at least zero.");
+            throw new MissingDataException("Number of reservations must be at least zero.");
         }
 
         return convertFromPersonListToPersonDTOList(personRepository.findByNumberOfReservationsLessThan(numberOfReservations));
@@ -241,14 +241,14 @@ public class PersonService {
      *
      * @param reservation the ID of the reservation linked to the person
      * @return a {@link PersonDTO} containing the person's information
-     * @throws RuntimeException if the reservation ID is less than 0
+     * @throws MissingDataException if the reservation ID is less than 0
      */
     public PersonDTO getPersonByReservationId (int reservation){
         if (reservation < 0){
-            throw new RuntimeException("Reservation id cannot be null or less than zero.");
+            throw new MissingDataException("Reservation id cannot be null or less than zero.");
         }
 
-        Person result = personRepository.findByReservation(reservation).orElseThrow();
+        Person result = personRepository.findByReservation(reservation).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase"));
 
         return PersonDTO.builder()
                 .name(result.getName())
@@ -268,7 +268,7 @@ public class PersonService {
      */
     @Transactional
     public Person updatePersonInfo(Long personId, PersonDTO dto){
-        Person personInDB = this.getPersonByIdObject(personId).orElseThrow();
+        Person personInDB = this.getPersonByIdObject(personId).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase"));
 
         if (!dto.getEmail().isBlank()){
             personInDB.setEmail(dto.getEmail());
@@ -299,20 +299,20 @@ public class PersonService {
      * Deletes a person by their ID only if they do not have an active reservation.
      *
      * @param id the ID of the person to delete
-     * @throws RuntimeException if the ID is null
-     * @throws RuntimeException if the person has an active reservation
+     * @throws MissingDataException if the ID is null
+     * @throws MissingDataException if the person has an active reservation
      */
     @Transactional
     public void deletePersonByID(Long id){
         if (id == null){
-            throw new RuntimeException("Id cannot be null");
+            throw new MissingDataException("Id cannot be null");
         }
 
-        Person personInDB = this.getPersonByIdObject(id).orElseThrow();
+        Person personInDB = this.getPersonByIdObject(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase"));
         Reservation reservationRelatedWithPerson = personInDB.getReservation();
 
         if (reservationRelatedWithPerson != null){
-            throw new RuntimeException("Cannot delete a client when his reservation is active.");
+            throw new MissingDataException("Cannot delete a client when his reservation is active.");
         }
 
         personRepository.delete(personInDB);
