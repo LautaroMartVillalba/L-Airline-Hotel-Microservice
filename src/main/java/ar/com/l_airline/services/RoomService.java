@@ -4,6 +4,7 @@ import ar.com.l_airline.domain.dto.RoomDTO;
 import ar.com.l_airline.domain.entities.Hotel;
 import ar.com.l_airline.domain.entities.Reservation;
 import ar.com.l_airline.domain.entities.Room;
+import ar.com.l_airline.domain.entities.RoomBookingPeriod;
 import ar.com.l_airline.domain.enums.BedsType;
 import ar.com.l_airline.domain.enums.RoomState;
 import ar.com.l_airline.domain.enums.RoomType;
@@ -72,27 +73,22 @@ public class RoomService {
     }
 
     public List<RoomDTO> parseFromRoomListToRoomDTOList(List<Room> rooms){
-        List<Long> reservationIds = new ArrayList<>();
-        List<Long> roomBookingPeriodIds = new ArrayList<>();
+        return rooms.stream().map(room -> {
+            List<Long> reservationIds = room.getReservation().stream().map(Reservation::getId).toList();
+            List<Long> roomBookingPeriodsId = room.getRoomBookingPeriod().stream().map(RoomBookingPeriod::getId).toList();
 
-        rooms.forEach(room -> room.getReservation().forEach(reservation -> {
-            reservationIds.add(reservation.getId());
-        }));
-
-        rooms.forEach(room -> room.getRoomBookingPeriod().forEach(rbp -> {
-            roomBookingPeriodIds.add(rbp.getId());
-        }));
-
-        return rooms.stream().map(room -> RoomDTO.builder()
-                .id(room.getId())
-                .floor(room.getFloor())
-                .peopleCapacity(room.getPeopleCapacity())
-                .numberOfBeds(room.getNumberOfBeds())
-                .bedType(room.getBedType())
-                .hotelId(room.getHotel().getId())
-                .reservationId(reservationIds)
-                .roomBookingPeriodId(roomBookingPeriodIds)
-                .state(room.getState()).build()).toList();
+            return RoomDTO.builder()
+                    .id(room.getId())
+                    .floor(room.getFloor())
+                    .peopleCapacity(room.getPeopleCapacity())
+                    .numberOfBeds(room.getNumberOfBeds())
+                    .bedType(room.getBedType())
+                    .hotelId(room.getHotel().getId())
+                    .timesBooked(room.getTimesBooked())
+                    .reservationId(reservationIds)
+                    .roomBookingPeriodId(roomBookingPeriodsId)
+                    .state(room.getState()).build();
+        }).toList();
     }
 
     /**
@@ -114,7 +110,7 @@ public class RoomService {
                 .numberOfBeds(room.getNumberOfBeds())
                 .state(room.getState())
                 .hotel(hotel)
-                .timeWasBooked(0).build();
+                .timesBooked(0L).build();
 
         roomRepository.save(newRoom);
 
