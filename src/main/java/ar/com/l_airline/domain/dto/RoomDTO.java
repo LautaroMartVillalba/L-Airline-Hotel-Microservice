@@ -8,6 +8,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @AllArgsConstructor
@@ -23,6 +24,7 @@ public class RoomDTO{
     private BedsType bedType;
     private int peopleCapacity;
     private Long timesBooked;
+    private BigDecimal pricePerNight;
     @Enumerated(EnumType.STRING)
     private RoomType roomType;
     @Enumerated(EnumType.STRING)

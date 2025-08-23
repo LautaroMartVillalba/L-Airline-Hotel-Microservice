@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -63,6 +64,8 @@ public class Room {
     private RoomState state;
     @NotNull
     private Long timesBooked;
+    @NotNull
+    private BigDecimal pricePerNight;
     @NotNull
     @ManyToOne
     @JoinColumn(name = "hotel_id", referencedColumnName = "id")

@@ -87,6 +87,7 @@ public class RoomService {
                     .bedType(room.getBedType())
                     .hotelId(room.getHotel().getId())
                     .timesBooked(room.getTimesBooked())
+                    .pricePerNight(room.getPricePerNight())
                     .reservationId(reservationIds)
                     .roomBookingPeriodId(roomBookingPeriodsId)
                     .state(room.getState()).build();
@@ -110,6 +111,10 @@ public class RoomService {
                 .roomType(room.getRoomType())
                 .bedType(room.getBedType())
                 .numberOfBeds(room.getNumberOfBeds())
+                .pricePerNight(RoomPriceGenerator.priceGenerator(room.getRoomType(),
+                                                                 room.getBedType(),
+                                                                 room.getFloor(),
+                                                                 room.getPeopleCapacity()))
                 .state(room.getState())
                 .hotel(hotel)
                 .timesBooked(0L).build();
@@ -133,6 +138,7 @@ public class RoomService {
                 .floor(result.getFloor())
                 .peopleCapacity(result.getPeopleCapacity())
                 .numberOfBeds(result.getNumberOfBeds())
+                .pricePerNight(result.getPricePerNight())
                 .bedType(result.getBedType())
                 .state(result.getState()).build();
     }
