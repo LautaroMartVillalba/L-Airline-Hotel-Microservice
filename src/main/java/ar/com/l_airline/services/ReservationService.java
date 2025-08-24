@@ -114,6 +114,7 @@ public class ReservationService {
                     .endAt(res.getEndAt())
                     .startAt(res.getStartAt())
                     .personId(res.getClient().getId())
+                    .totalPrice(res.getTotalPrice())
                     .roomBookedId(res.getRoomBooked().getId()).build();
 
             response.add(transfer);
@@ -204,6 +205,7 @@ public class ReservationService {
                 .endAt(result.getEndAt())
                 .startAt(result.getStartAt())
                 .personId(result.getClient().getId())
+                .totalPrice(result.getTotalPrice())
                 .roomBookedId(result.getRoomBooked().getId()).build();
     }
 
