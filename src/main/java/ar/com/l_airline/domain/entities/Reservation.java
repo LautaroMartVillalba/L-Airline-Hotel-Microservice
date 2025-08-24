@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -31,16 +32,23 @@ public class Reservation {
     @NotNull
     @Min(1)
     @Max(value = 4, message = "")
+    @Column(name = "number_of_people")
     private Long numberOfPeople;
     @NotNull
     @Min(1)
+    @Column(name = "number_of_nights")
     private Long numberOfNights;
     @NotNull
     @FutureOrPresent
+    @Column(name = "start_at")
     private LocalDate startAt;
     @NotNull
     @Future
+    @Column(name = "end_at")
     private LocalDate endAt;
+    @NotNull
+    @Column(name = "total_price")
+    private BigDecimal totalPrice;
     @NotNull
     @OneToOne
     @JoinColumn(name = "person_id", referencedColumnName = "id")
@@ -49,8 +57,5 @@ public class Reservation {
     @ManyToOne
     @JoinColumn(name = "room_id", referencedColumnName = "id")
     private Room roomBooked;
-    @NotNull
-    @OneToOne(mappedBy = "reservation", cascade = CascadeType.ALL)
-    private RoomBookingPeriod roomBookingPeriod;
 
 }

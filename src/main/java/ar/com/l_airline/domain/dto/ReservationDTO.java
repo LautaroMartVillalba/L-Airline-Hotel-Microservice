@@ -1,9 +1,8 @@
 package ar.com.l_airline.domain.dto;
 
-import ar.com.l_airline.domain.entities.Person;
-import ar.com.l_airline.domain.entities.Room;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @AllArgsConstructor
@@ -16,6 +15,7 @@ public class ReservationDTO {
     private Long numberOfNights;
     private LocalDate startAt;
     private LocalDate endAt;
+    private BigDecimal totalPrice;
     private Long personId;
     private Long roomBookedId;
 }

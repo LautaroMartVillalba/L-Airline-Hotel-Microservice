@@ -2,10 +2,13 @@ package ar.com.l_airline.services;
 
 import ar.com.l_airline.domain.dto.PersonDTO;
 import ar.com.l_airline.domain.dto.ReservationDTO;
+import ar.com.l_airline.domain.dto.RoomBookingPeriodDTO;
 import ar.com.l_airline.domain.dto.RoomDTO;
 import ar.com.l_airline.domain.entities.Person;
 import ar.com.l_airline.domain.entities.Reservation;
 import ar.com.l_airline.domain.entities.Room;
+import ar.com.l_airline.domain.entities.RoomBookingPeriod;
+import ar.com.l_airline.domain.enums.RoomBookingStatus;
 import ar.com.l_airline.domain.enums.RoomState;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundInDatabaseException;
@@ -13,6 +16,7 @@ import ar.com.l_airline.repositories.ReservationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -31,11 +35,13 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final PersonService personService;
     private final RoomService roomService;
+    private final RoomBookingPeriodService roomBookingPeriodService;
 
-    public ReservationService(ReservationRepository reservationRepository, PersonService personService, RoomService roomService) {
+    public ReservationService(ReservationRepository reservationRepository, PersonService personService, RoomService roomService, RoomBookingPeriodService roomBookingPeriodService) {
         this.reservationRepository = reservationRepository;
         this.personService = personService;
         this.roomService = roomService;
+        this.roomBookingPeriodService = roomBookingPeriodService;
     }
 
     /**
@@ -58,7 +64,7 @@ public class ReservationService {
      * @param endAt the reservation end date
      * @throws MissingDataException if validation fails
      */
-    private Long validateReservationDate(LocalDate startAt, LocalDate endAt){
+    private Long validateAndGetReservationDate(LocalDate startAt, LocalDate endAt){
         if (startAt == null || endAt == null){
             throw new MissingDataException("Both parameters cannot be null.");
         }
@@ -131,21 +137,38 @@ public class ReservationService {
      */
     @Transactional
     public Reservation createReservation(ReservationDTO dto, PersonDTO personDTO) {
-        Long numberOfNights = validateReservationDate(dto.getStartAt(), dto.getEndAt());
+        //Validate the received data
+        Long numberOfNights = validateAndGetReservationDate(dto.getStartAt(), dto.getEndAt());
         validateNumberOfPeople(dto.getNumberOfPeople());
         validateIfTargetRoomIsReserved(dto.getRoomBookedId(), dto.getStartAt(), dto.getEndAt());
 
+        //Search relationship objects
         Person client = personService.getPersonByIdObject(dto.getPersonId()).orElseGet(() -> personService.createPerson(personDTO));
+        Room room = roomService.getRoomById(dto.getRoomBookedId());
 
+        //Create new reservation
         Reservation reservation = Reservation.builder()
                 .numberOfPeople(dto.getNumberOfPeople())
                 .numberOfNights(numberOfNights)
                 .startAt(dto.getStartAt())
                 .endAt(dto.getEndAt())
+                .totalPrice(room.getPricePerNight().multiply(BigDecimal.valueOf(numberOfNights)))
                 .client(client)
-                .roomBooked(roomService.getRoomById(dto.getRoomBookedId())).build();
+                .roomBooked(room).build();
 
-        reservationRepository.save(reservation);
+        //Save reservation and save on an object to access to the ID value.
+        Reservation reservationSavedInDB = reservationRepository.save(reservation);
+
+        //Immediately create a RoomBookingRegister to with the reservation information
+        RoomBookingPeriodDTO roomBookingRegister  = RoomBookingPeriodDTO.builder()
+                .startAt(dto.getStartAt())
+                .endAt(dto.getEndAt())
+                .status(RoomBookingStatus.RESERVED)
+                .roomId(room.getId())
+                .reservationId(reservationSavedInDB.getId()).build();
+        roomBookingPeriodService.create(roomBookingRegister);
+
+        //Change the Room State from FREE to RESERVED
         roomService.changeRoomState(dto.getRoomBookedId(), RoomState.RESERVED);
 
         return reservation;
@@ -354,7 +377,7 @@ public class ReservationService {
             reservationInDB.setEndAt(dto.getEndAt());
         }
         // Validate the final state of the updated reservation
-        validateReservationDate(reservationInDB.getStartAt(), reservationInDB.getEndAt());
+        validateAndGetReservationDate(reservationInDB.getStartAt(), reservationInDB.getEndAt());
         validateNumberOfPeople(reservationInDB.getNumberOfPeople());
 
         return reservationInDB;
