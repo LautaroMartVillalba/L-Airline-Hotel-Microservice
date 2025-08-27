@@ -9,6 +9,8 @@ import ar.com.l_airline.exceptionHandler.custom_exceptions.ConflictStateExceptio
 import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundInDatabaseException;
 import ar.com.l_airline.repositories.AddressRepository;
+import ar.com.l_airline.repositories.HotelRepository;
+import ar.com.l_airline.repositories.PersonRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,14 +21,14 @@ public class AddressService {
 
     private final AddressRepository addressRepository;
     private final StatesService statesService;
-    private final HotelService hotelService;
-    private final PersonService personService;
+    private final HotelRepository hotelRepository;
+    private final PersonRepository personRepository;
 
-    public AddressService(AddressRepository addressRepository, StatesService statesService, HotelService hotelService, PersonService personService) {
+    public AddressService(AddressRepository addressRepository, StatesService statesService, HotelRepository hotelRepository, PersonRepository personRepository) {
         this.addressRepository = addressRepository;
         this.statesService = statesService;
-        this.hotelService = hotelService;
-        this.personService = personService;
+        this.hotelRepository = hotelRepository;
+        this.personRepository = personRepository;
     }
 
     private void validate(String street, String number, String stateCode, Long personId, Long hotelId){
@@ -72,11 +74,11 @@ public class AddressService {
         }
 
         if (dto.getHotelId() != null){
-            Hotel hotel = hotelService.getHotelByIdObject(dto.getHotelId());
+            Hotel hotel = hotelRepository.findById(dto.getHotelId()).orElseThrow(()-> new MissingDataException("Register cannot be found in the DataBase."));
             address.setHotel(hotel);
         }
         if (dto.getPersonId() != null) {
-            Person person = personService.getPersonByIdObject(dto.getPersonId()).orElseThrow(()-> new NotFoundInDatabaseException("Cannot found a Person register with that ID."));
+            Person person = personRepository.findById(dto.getPersonId()).orElseThrow(()-> new NotFoundInDatabaseException("Cannot found a Person register with that ID."));
             address.setPerson(person);
         }
 

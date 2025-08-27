@@ -1,17 +1,18 @@
 package ar.com.l_airline.services;
 
+import ar.com.l_airline.domain.dto.AddressDTO;
 import ar.com.l_airline.domain.dto.HotelDTO;
 import ar.com.l_airline.domain.entities.Attraction;
 import ar.com.l_airline.domain.entities.Benefit;
 import ar.com.l_airline.domain.entities.Hotel;
 import ar.com.l_airline.domain.entities.Room;
+import ar.com.l_airline.domain.entities.address.Address;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
 import ar.com.l_airline.repositories.HotelRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -26,12 +27,14 @@ public class HotelService {
     private final RoomService roomService;
     private final BenefitService benefitService;
     private final AttractionService attractionService;
+    private final AddressService addressService;
 
-    public HotelService(HotelRepository repository, RoomService roomService, BenefitService benefitService, AttractionService attractionService) {
+    public HotelService(HotelRepository repository, RoomService roomService, BenefitService benefitService, AttractionService attractionService, AddressService addressService) {
         this.hotelRepository = repository;
         this.roomService = roomService;
         this.benefitService = benefitService;
         this.attractionService = attractionService;
+        this.addressService = addressService;
     }
 
     private void validateInfo(String name, int totalRooms, String phoneNumber){
@@ -52,9 +55,17 @@ public class HotelService {
             List<Long> benefitsId = hotel.getBenefits().stream().map(Benefit::getId).toList();
             List<Long> attractionsId = hotel.getAttractions().stream().map(Attraction::getId).toList();
 
+            String countryCode = hotel.getAddress().getState().getCountryCode();
+            String stateName = hotel.getAddress().getState().getSubdivision();
+            String streetName = hotel.getAddress().getStreet();
+            String streetNumber = hotel.getAddress().getNumber();
+
+
             return HotelDTO.builder()
                     .name(hotel.getName())
                     .stars(hotel.getStars())
+                    .address(streetName + " " + streetNumber)
+                    .ubication(stateName + ", " + countryCode)
                     .totalRooms(hotel.getTotalRooms())
                     .freeRooms(hotel.getTotalRooms())
                     .reservedRooms(0)
@@ -74,7 +85,7 @@ public class HotelService {
      * @return The persisted Hotel entity
      */
     @Transactional
-    public Hotel createHotel (HotelDTO hotelDTO){
+    public Hotel createHotel (HotelDTO hotelDTO, AddressDTO addressDTO){
         validateInfo(hotelDTO.getName(), hotelDTO.getTotalRooms(), hotelDTO.getContactPhone());
 
         // Resolve room references from IDs
@@ -85,10 +96,13 @@ public class HotelService {
             rooms.add(roomInDB);
         });
 
+        Address createdAddress = addressService.createAddress(addressDTO);
+
         // Create hotel entity with initial values
         Hotel hotel = Hotel.builder()
                 .name(hotelDTO.getName())
                 .stars(0)
+                .address(createdAddress)
                 .totalRooms(hotelDTO.getTotalRooms())
                 .freeRooms(hotelDTO.getTotalRooms())
                 .contactPhone(hotelDTO.getContactPhone())
@@ -146,9 +160,16 @@ public class HotelService {
         hotelInDb.getAttractions().forEach(attraction -> attractionIdList.add(attraction.getId()));
         hotelInDb.getBenefits().forEach(benefit -> benefitsIdList.add(benefit.getId()));
 
+        String countryCode = hotelInDb.getAddress().getState().getCountryCode();
+        String stateName = hotelInDb.getAddress().getState().getSubdivision();
+        String streetName = hotelInDb.getAddress().getStreet();
+        String streetNumber = hotelInDb.getAddress().getNumber();
+
         return HotelDTO.builder()
                 .name(hotelInDb.getName())
                 .stars(hotelInDb.getStars())
+                .address(streetName + " " + streetNumber)
+                .ubication(stateName + ", " + countryCode)
                 .freeRooms(hotelInDb.getFreeRooms())
                 .roomsId(roomIdList)
                 .attractionsId(attractionIdList)

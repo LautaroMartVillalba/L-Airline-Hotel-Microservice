@@ -1,12 +1,13 @@
 package ar.com.l_airline.services;
 
+import ar.com.l_airline.domain.dto.AddressDTO;
 import ar.com.l_airline.domain.dto.PersonDTO;
 import ar.com.l_airline.domain.entities.Person;
 import ar.com.l_airline.domain.entities.Reservation;
+import ar.com.l_airline.domain.entities.address.Address;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundInDatabaseException;
 import ar.com.l_airline.repositories.PersonRepository;
-import ar.com.l_airline.repositories.ReservationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,11 +22,11 @@ import java.util.Optional;
 public class PersonService {
 
     private final PersonRepository personRepository;
-    private final ReservationRepository reservationRepository;
+    private final AddressService addressService;
 
-    public PersonService(PersonRepository personRepository, ReservationRepository reservationService) {
+    public PersonService(PersonRepository personRepository, AddressService addressService) {
         this.personRepository = personRepository;
-        this.reservationRepository = reservationService;
+        this.addressService = addressService;
     }
 
     /**
@@ -58,10 +59,17 @@ public class PersonService {
         return list.stream().map(person -> {
             Reservation reservation = person.getReservation();
 
+            String countryCode = person.getAddress().getState().getCountryCode();
+            String stateName = person.getAddress().getState().getSubdivision();
+            String streetName = person.getAddress().getStreet();
+            String streetNumber = person.getAddress().getNumber();
+
             return PersonDTO.builder()
                     .name(person.getName())
                     .age(person.getAge())
                     .cellPhone(person.getCellPhone())
+                    .address(streetName + " " + streetNumber)
+                    .ubication(stateName + ", " + countryCode)
                     .reservationId(reservation != null ? reservation.getId() : null)
                     .numberOfReservations(person.getNumberOfReservations())
                     .build();
@@ -73,21 +81,24 @@ public class PersonService {
      * Creates a new Person entity from the provided DTO.
      * Performs field validation before saving the entity.
      *
-     * @param dto the data transfer object containing person data
+     * @param personDTO the data transfer object containing person data
      * @return the persisted Person entity
      * @throws MissingDataException if validation fails
      */
     @Transactional
-    public Person createPerson (PersonDTO dto){
-        validatePerson(dto.getName(), dto.getDni(), dto.getEmail(), dto.getAge(), dto.getCellPhone());
+    public Person createPerson (PersonDTO personDTO, AddressDTO addressDTO){
+        validatePerson(personDTO.getName(), personDTO.getDni(), personDTO.getEmail(), personDTO.getAge(), personDTO.getCellPhone());
+
+        Address address = addressService.createAddress(addressDTO);
 
         Person person = Person.builder()
-                .name(dto.getName())
-                .dni(dto.getDni())
-                .age(dto.getAge())
-                .email(dto.getEmail())
+                .name(personDTO.getName())
+                .dni(personDTO.getDni())
+                .age(personDTO.getAge())
+                .email(personDTO.getEmail())
+                .address(address)
                 .numberOfReservations(0)
-                .cellPhone(dto.getCellPhone()).build();
+                .cellPhone(personDTO.getCellPhone()).build();
 
         personRepository.save(person);
 
@@ -108,10 +119,17 @@ public class PersonService {
 
         Person result = personRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
 
+        String countryCode = result.getAddress().getState().getCountryCode();
+        String stateName = result.getAddress().getState().getSubdivision();
+        String streetName = result.getAddress().getStreet();
+        String streetNumber = result.getAddress().getNumber();
+
         return PersonDTO.builder()
                 .name(result.getName())
                 .age(result.getAge())
                 .cellPhone(result.getCellPhone())
+                .address(streetName + " " + streetNumber)
+                .ubication(stateName + ", " + countryCode)
                 .reservationId(result.getReservation().getId())
                 .numberOfReservations(result.getNumberOfReservations()).build();
     }

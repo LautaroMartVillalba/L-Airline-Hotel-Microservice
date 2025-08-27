@@ -1,13 +1,9 @@
 package ar.com.l_airline.services;
 
-import ar.com.l_airline.domain.dto.PersonDTO;
-import ar.com.l_airline.domain.dto.ReservationDTO;
-import ar.com.l_airline.domain.dto.RoomBookingPeriodDTO;
-import ar.com.l_airline.domain.dto.RoomDTO;
+import ar.com.l_airline.domain.dto.*;
 import ar.com.l_airline.domain.entities.Person;
 import ar.com.l_airline.domain.entities.Reservation;
 import ar.com.l_airline.domain.entities.Room;
-import ar.com.l_airline.domain.entities.RoomBookingPeriod;
 import ar.com.l_airline.domain.enums.RoomBookingStatus;
 import ar.com.l_airline.domain.enums.RoomState;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
@@ -137,14 +133,14 @@ public class ReservationService {
      * @throws MissingDataException if any validation fails or if the room is already booked
      */
     @Transactional
-    public Reservation createReservation(ReservationDTO dto, PersonDTO personDTO) {
+    public Reservation createReservation(ReservationDTO dto, PersonDTO personDTO, AddressDTO addressDTO) {
         //Validate the received data
         Long numberOfNights = validateAndGetReservationDate(dto.getStartAt(), dto.getEndAt());
         validateNumberOfPeople(dto.getNumberOfPeople());
         validateIfTargetRoomIsReserved(dto.getRoomBookedId(), dto.getStartAt(), dto.getEndAt());
 
         //Search relationship objects
-        Person client = personService.getPersonByIdObject(dto.getPersonId()).orElseGet(() -> personService.createPerson(personDTO));
+        Person client = personService.getPersonByIdObject(dto.getPersonId()).orElseGet(() -> personService.createPerson(personDTO, addressDTO));
         Room room = roomService.getRoomById(dto.getRoomBookedId());
 
         //Create new reservation

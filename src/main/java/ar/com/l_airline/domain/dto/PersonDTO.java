@@ -16,5 +16,7 @@ public class PersonDTO {
     private String cellPhone;
     private int numberOfReservations;
     private Long reservationId;
+    private String ubication;
+    private String address;
 
 }
