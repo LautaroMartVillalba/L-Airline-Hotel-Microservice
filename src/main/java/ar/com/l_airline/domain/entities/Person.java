@@ -1,5 +1,6 @@
 package ar.com.l_airline.domain.entities;
 
+import ar.com.l_airline.domain.entities.address.Address;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -52,5 +53,8 @@ public class Person {
     @NotNull
     @OneToOne(mappedBy = "client")
     private Reservation reservation;
+    @OneToOne
+    @JoinColumn(name = "address_id", referencedColumnName = "id")
+    private Address address;
 
 }

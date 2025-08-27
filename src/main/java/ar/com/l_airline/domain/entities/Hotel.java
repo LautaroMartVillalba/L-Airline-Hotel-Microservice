@@ -1,5 +1,6 @@
 package ar.com.l_airline.domain.entities;
 
+import ar.com.l_airline.domain.entities.address.Address;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -57,5 +58,8 @@ public class Hotel {
     @NotNull
     @OneToMany(mappedBy = "hotel")
     private List <Attraction> attractions = new ArrayList<>();
+    @OneToOne
+    @JoinColumn(name = "address_id", referencedColumnName = "id")
+    private Address address;
 
 }
