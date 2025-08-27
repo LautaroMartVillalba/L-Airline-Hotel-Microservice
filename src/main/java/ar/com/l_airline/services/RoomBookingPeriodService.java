@@ -7,6 +7,7 @@ import ar.com.l_airline.domain.entities.RoomBookingPeriod;
 import ar.com.l_airline.domain.enums.RoomBookingStatus;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
 import ar.com.l_airline.exceptionHandler.custom_exceptions.NotFoundInDatabaseException;
+import ar.com.l_airline.repositories.ReservationRepository;
 import ar.com.l_airline.repositories.RoomBookingPeriodRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,12 +20,12 @@ public class RoomBookingPeriodService {
 
     private final RoomBookingPeriodRepository repository;
     private final RoomService roomService;
-    private final ReservationService reservationService;
+    private final ReservationRepository reservationRepository;
 
-    public RoomBookingPeriodService(RoomBookingPeriodRepository repository, RoomService roomService, ReservationService reservationService) {
+    public RoomBookingPeriodService(RoomBookingPeriodRepository repository, RoomService roomService, ReservationRepository reservationRepository) {
         this.repository = repository;
         this.roomService = roomService;
-        this.reservationService = reservationService;
+        this.reservationRepository = reservationRepository;
     }
 
     private void validate(LocalDate startAt, LocalDate endAt, Long roomId, Long reservationId){
@@ -77,7 +78,7 @@ public class RoomBookingPeriodService {
     public RoomBookingPeriod create(RoomBookingPeriodDTO dto){
         validate(dto.getStartAt(), dto.getEndAt(), dto.getRoomId(), dto.getReservationId());
         Room room = roomService.getRoomById(dto.getRoomId());
-        Reservation reservation = reservationService.getById(dto.getReservationId());
+        Reservation reservation = reservationRepository.findById(dto.getReservationId()).orElseThrow();
 
         RoomBookingPeriod register = RoomBookingPeriod.builder()
                 .startAt(dto.getStartAt())
