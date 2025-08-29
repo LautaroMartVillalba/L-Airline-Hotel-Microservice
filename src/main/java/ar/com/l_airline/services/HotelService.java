@@ -16,9 +16,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Service class responsible for business logic related to Hotel entities.
- * Handles creation and validation of hotels, as well as managing associations with rooms,
- * benefits, and attractions.
+ * Service class responsible for handling business logic related to {@link Hotel} entities.
+ * <p>
+ * This service provides operations for creating hotels, retrieving hotel data,
+ * and converting hotel entities to DTOs for data transfer between layers.
+ * It coordinates with {@link RoomService}, {@link BenefitService}, {@link AttractionService},
+ * and {@link AddressService} to manage related entities.
+ * </p>
  */
 @Service
 public class HotelService {
@@ -37,6 +41,14 @@ public class HotelService {
         this.addressService = addressService;
     }
 
+    /**
+     * Validates hotel input information.
+     *
+     * @param name        Name of the hotel. Must not be blank.
+     * @param totalRooms  Total number of rooms. Must be at least 1.
+     * @param phoneNumber Contact phone number. Must not be null or blank.
+     * @throws MissingDataException if any validation fails.
+     */
     private void validateInfo(String name, int totalRooms, String phoneNumber){
         if(name.isBlank()){
             throw new MissingDataException("Hotel name cannot be null.");
@@ -49,6 +61,12 @@ public class HotelService {
         }
     }
 
+    /**
+     * Converts a list of {@link Hotel} entities into a list of {@link HotelDTO}.
+     *
+     * @param list List of Hotel entities.
+     * @return List of HotelDTO objects representing the given hotels.
+     */
     private List<HotelDTO> convertFromHotelListToHotelDTOList(List<Hotel> list){
         return list.stream().map(hotel -> {
             List<Long> roomsId = hotel.getRooms().stream().map(Room::getId).toList();
@@ -77,12 +95,15 @@ public class HotelService {
         }).toList();
     }
 
+
     /**
-     * Creates and persists a new Hotel entity based on the given DTOs.
-     * Performs data validation and fetches associated entities (rooms, attractions, benefits).
+     * Creates a new {@link Hotel} entity along with its related {@link Address}, {@link Room},
+     * {@link Benefit}, and {@link Attraction} entities if provided.
      *
-     * @param hotelDTO    DTO containing hotel data
-     * @return The persisted Hotel entity
+     * @param hotelDTO   Data transfer object containing hotel information.
+     * @param addressDTO Data transfer object containing address information.
+     * @return The persisted Hotel entity.
+     * @throws MissingDataException if required, hotel information is missing.
      */
     @Transactional
     public Hotel createHotel (HotelDTO hotelDTO, AddressDTO addressDTO){
@@ -137,13 +158,12 @@ public class HotelService {
         return hotel;
     }
 
-        /**
-     * Retrieves a hotel by its ID and maps it to a HotelDTO object.
-     * Extracts associated room IDs, attraction IDs, and benefit IDs for inclusion in the DTO.
+   /**
+     * Retrieves a {@link Hotel} by its ID and converts it into a {@link HotelDTO}.
      *
-     * @param id The ID of the hotel to retrieve
-     * @return A HotelDTO representing the retrieved hotel
-     * @throws MissingDataException if the ID is less than or equal to 0, or if the hotel is not found
+     * @param id Hotel ID. Must be greater than 0.
+     * @return HotelDTO representing the hotel with the given ID.
+     * @throws MissingDataException if the ID is invalid or the hotel is not found.
      */
     public HotelDTO getHotelByIdDTO(Long id){
         if (id <= 0){
@@ -176,12 +196,13 @@ public class HotelService {
                 .benefitsId(benefitsIdList)
                 .build();
     }
+
     /**
-     * Retrieves a Hotel entity by its ID.
+     * Retrieves a {@link Hotel} entity by its ID.
      *
-     * @param id The ID of the hotel to retrieve
-     * @return The corresponding Hotel entity
-     * @throws MissingDataException if the ID is invalid or the hotel does not exist
+     * @param id Hotel ID. Must be greater than 0.
+     * @return Hotel entity with the given ID.
+     * @throws MissingDataException if the ID is invalid or the hotel is not found.
      */
     public Hotel getHotelByIdObject(Long id){
         if (id <= 0){
@@ -192,12 +213,11 @@ public class HotelService {
     }
 
     /**
-     * Retrieves all hotels with the specified star rating and maps them to HotelDTOs.
-     * Each DTO includes associated room, attraction, and benefit IDs.
+     * Retrieves a list of hotels that match the given star rating.
      *
-     * @param stars The star rating to filter hotels by
-     * @return List of HotelDTOs matching the given star rating; empty if none found
-     * @throws MissingDataException if the star rating is less than or equal to zero
+     * @param stars Star rating to filter hotels. Must be greater than 0.
+     * @return List of {@link HotelDTO} objects with the specified star rating.
+     * @throws MissingDataException if the stars parameter is less than or equal to zero.
      */
     public List<HotelDTO> getHotelByStars(double stars){
         if (stars <= 0){
@@ -208,12 +228,11 @@ public class HotelService {
     }
 
     /**
-     * Retrieves a list of hotels whose names contain the specified substring.
-     * Each hotel is mapped to a HotelDTO including associated entity IDs.
+     * Retrieves a list of hotels that contain the given name.
      *
-     * @param name Partial or full hotel name
-     * @return List of HotelDTOs matching the name criteria
-     * @throws MissingDataException if the name is blank
+     * @param name Name to filter hotels. Must not be blank.
+     * @return List of {@link HotelDTO} objects whose names contain the specified value.
+     * @throws MissingDataException if the name is blank.
      */
     public List<HotelDTO> getHotelByName(String name){
         if (name.isBlank()){
@@ -223,13 +242,13 @@ public class HotelService {
         return convertFromHotelListToHotelDTOList(hotelRepository.findByNameContaining(name));
     }
 
+
     /**
-     * Retrieves hotels that offer a specific benefit by name.
-     * Each hotel is mapped to a HotelDTO with associated entity IDs.
+     * Retrieves a list of hotels that offer a benefit with the given name.
      *
-     * @param benefitsName The benefit name to search for (supports partial match)
-     * @return List of HotelDTOs with matching benefits
-     * @throws MissingDataException if the benefit name is blank
+     * @param benefitsName Name of the benefit. Must not be blank.
+     * @return List of {@link HotelDTO} objects that provide the specified benefit.
+     * @throws MissingDataException if the benefitsName is blank.
      */
     public List<HotelDTO> getHotelByBenefits(String benefitsName){
         if (benefitsName.isBlank()){
@@ -239,12 +258,13 @@ public class HotelService {
         return convertFromHotelListToHotelDTOList(hotelRepository.findByBenefits(benefitsName));
     }
 
+
     /**
-     * Retrieves hotels associated with a specific attraction by name.
+     * Retrieves a list of hotels that include an attraction with the given name.
      *
-     * @param attractionName Name of the attraction (partial match supported)
-     * @return List of HotelDTOs related to the attraction
-     * @throws MissingDataException if the name is blank
+     * @param attractionName Name of the attraction. Must not be blank.
+     * @return List of {@link HotelDTO} objects that include the specified attraction.
+     * @throws MissingDataException if the attractionName is blank.
      */
     public List<HotelDTO> getHotelByAttraction(String attractionName){
         if (attractionName.isBlank()){
@@ -254,14 +274,15 @@ public class HotelService {
         return convertFromHotelListToHotelDTOList(hotelRepository.findByAttractions(attractionName));
     }
 
+
     /**
-     * Updates an existing hotel entity by applying only the basic field changes:
-     * name, stars, and totalRooms. Associated rooms, benefits, and attractions remain unchanged.
+     * Updates basic information of an existing hotel without modifying its associated
+     * benefits, rooms, or attractions.
      *
-     * @param id  The ID of the hotel to update
-     * @param dto DTO containing the new hotel values
-     * @return The updated Hotel entity
-     * @throws MissingDataException if the resulting hotel state is invalid
+     * @param id  ID of the hotel to update.
+     * @param dto {@link HotelDTO} containing the new hotel information.
+     * @return Updated {@link Hotel} entity.
+     * @throws MissingDataException if required fields are invalid after update.
      */
     @Transactional
     public Hotel updateHotelWithoutModifyBenefitsRoomsOrAttractions(Long id, HotelDTO dto){
@@ -284,12 +305,13 @@ public class HotelService {
         return hotelInDb;
     }
 
-    /**
-     * Deletes a hotel by its ID, only if it has no active (reserved) rooms.
-     *
-     * @param id The ID of the hotel to delete
-     * @throws MissingDataException if the ID is null or if there are active reservations
-     */
+
+/**
+ * Deletes a hotel entity if it exists and has no active reservations.
+ *
+ * @param id ID of the hotel to delete. Must not be null or less than 1.
+ * @throws MissingDataException if the ID is invalid or the hotel has active reservations.
+ */
     @Transactional
     public void deleteHotel(Long id){
         if (id == null || id < 1){

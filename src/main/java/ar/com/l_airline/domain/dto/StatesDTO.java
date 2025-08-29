@@ -6,7 +6,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import ar.com.l_airline.domain.entities.address.States;
 
+/**
+ * Data Transfer Object for {@link States}.
+ * <p>
+ * Used to transfer state (or province) data between layers without exposing the entity directly.
+ * Contains basic state information and a list of associated address IDs.
+ * </p>
+ */
 @AllArgsConstructor
 @NoArgsConstructor
 @Data

@@ -6,7 +6,15 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import ar.com.l_airline.domain.entities.Hotel;
 
+/**
+ * Data Transfer Object for {@link Hotel}.
+ * <p>
+ * Used to transfer hotel data between layers without exposing the entity directly.
+ * Contains basic hotel fields, lists of related entity IDs, and address information.
+ * </p>
+ */
 @AllArgsConstructor
 @Getter
 @Setter

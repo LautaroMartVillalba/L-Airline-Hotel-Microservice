@@ -4,13 +4,15 @@ import ar.com.l_airline.domain.entities.Attraction;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NonNull;
 
 import java.time.LocalTime;
 
 /**
- * Data Transfer Object (DTO) for the {@link Attraction} entity.
- * Used to transfer attraction data between application layers without exposing the entity directly.
+ * Data Transfer Object for {@link Attraction}.
+ * <p>
+ * Used to transfer attraction data between layers without exposing the entity directly.
+ * Contains basic attraction fields and reference to the associated hotel.
+ * </p>
  */
 @AllArgsConstructor
 @Builder

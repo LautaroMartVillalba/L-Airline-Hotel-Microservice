@@ -8,13 +8,23 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * Represents a reservation entity in the system.
+ * Represents a Reservation entity within the application.
  * <p>
- * This entity stores information about a client's reservation, including the
- * number of people, number of nights, reservation dates, the client who made
- * the reservation, and the room that was booked.
+ * This class maps to the "entity_reservation" table in the database.
+ * It stores information about hotel reservations, including the number of people,
+ * number of nights, booking dates, total price, and associated client and room.
+ * </p>
  * <p>
- * Mapped to the database table "entity_reservation".
+ * Relationships:
+ * <ul>
+ *     <li>{@link Person}: One-to-One relationship. Each reservation is linked to a single client.</li>
+ *     <li>{@link Room}: Many-to-One relationship. Each reservation is associated with a specific room.</li>
+ * </ul>
+ * </p>
+ * <p>
+ * The startAt and endAt fields use date validation to ensure proper booking periods.
+ * The totalPrice field indicates the cost for the reservation, calculated based on the room and duration.
+ * </p>
  */
 @Entity
 @Table(name = "entity_reservation")

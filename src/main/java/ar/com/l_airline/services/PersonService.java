@@ -15,8 +15,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service class responsible for managing Person-related operations.
- * It provides methods to create, retrieve, and validate Person entities.
+ * Service layer for managing {@link Person} entities.
+ * Provides methods to create, retrieve, update, and delete persons,
+ * as well as to query them by attributes such as email, DNI, name, cellphone, or number of reservations.
  */
 @Service
 public class PersonService {
@@ -30,14 +31,14 @@ public class PersonService {
     }
 
     /**
-     * Validates the required fields and conditions for creating a Person.
+     * Validates a {@link Person} data.
      *
-     * @param name the name of the person
-     * @param dni the national ID of the person
-     * @param email the email address of the person
-     * @param age the age of the person
-     * @param cellPhone the cell phone number of the person
-     * @throws MissingDataException if any of the required parameters are blank or age is under 18
+     * @param name      Name of the person.
+     * @param dni       DNI (National ID) of the person.
+     * @param email     Email address.
+     * @param age       Age of the person. Must be 18 or older.
+     * @param cellPhone Cellphone number.
+     * @throws MissingDataException if any mandatory field is missing or age is under 18.
      */
     private void validatePerson(String name, String dni, String email, int age, String cellPhone){
         if (age < 18){
@@ -49,11 +50,10 @@ public class PersonService {
     }
 
     /**
-     * Converts a list of Person entities to a list of PersonDTOs.
-     * This method maps each Person entity to its DTO representation.
+     * Converts a list of {@link Person} entities into a list of {@link PersonDTO}.
      *
-     * @param list the list of Person entities
-     * @return a list of PersonDTOs
+     * @param list List of {@link Person} entities.
+     * @return List of {@link PersonDTO}.
      */
     private List<PersonDTO> convertFromPersonListToPersonDTOList(List<Person> list){
         return list.stream().map(person -> {
@@ -78,12 +78,12 @@ public class PersonService {
     }
 
     /**
-     * Creates a new Person entity from the provided DTO.
-     * Performs field validation before saving the entity.
+     * Creates a new {@link Person} entity with its associated address.
      *
-     * @param personDTO the data transfer object containing person data
-     * @return the persisted Person entity
-     * @throws MissingDataException if validation fails
+     * @param personDTO  {@link PersonDTO} containing person data.
+     * @param addressDTO {@link AddressDTO} containing the person's address data.
+     * @return The created {@link Person} entity.
+     * @throws MissingDataException if mandatory fields are missing or invalid.
      */
     @Transactional
     public Person createPerson (PersonDTO personDTO, AddressDTO addressDTO){
@@ -106,11 +106,12 @@ public class PersonService {
     }
 
     /**
-     * Retrieves a Person by ID and returns its DTO representation.
+     * Retrieves a {@link PersonDTO} by its ID.
      *
-     * @param id the ID of the person
-     * @return the PersonDTO corresponding to the given ID
-     * @throws MissingDataException if the ID is null or not found
+     * @param id ID of the person.
+     * @return {@link PersonDTO} representing the person.
+     * @throws MissingDataException        if ID is null.
+     * @throws NotFoundInDatabaseException if the person cannot be found.
      */
     public PersonDTO getPersonByIdDTO (Long id){
         if (id == null){
@@ -135,11 +136,11 @@ public class PersonService {
     }
 
     /**
-     * Retrieves a Person entity by ID.
+     * Retrieves a {@link Person} entity by its ID.
      *
-     * @param id the ID of the person
-     * @return an Optional containing the Person entity if found
-     * @throws MissingDataException if the ID is null
+     * @param id ID of the person.
+     * @return Optional containing the {@link Person} entity.
+     * @throws MissingDataException if ID is null.
      */
     public Optional<Person> getPersonByIdObject (Long id){
         if (id == null){
@@ -150,11 +151,11 @@ public class PersonService {
     }
 
     /**
-     * Retrieves all persons whose email contains the given string.
+     * Finds persons whose email contains the given string.
      *
-     * @param email the partial or full email to search
-     * @return a list of PersonDTOs matching the given email
-     * @throws MissingDataException if the email is blank
+     * @param email Email filter.
+     * @return List of {@link PersonDTO}.
+     * @throws MissingDataException if email is blank.
      */
     public List<PersonDTO> getPersonByEmail (String email){
         if (email.isBlank()){
@@ -165,11 +166,11 @@ public class PersonService {
     }
 
     /**
-     * Retrieves all persons whose DNI contains the given string.
+     * Finds persons whose DNI contains the given string.
      *
-     * @param DNI the partial or full DNI to search
-     * @return a list of PersonDTOs matching the given DNI
-     * @throws MissingDataException if the DNI is blank
+     * @param DNI DNI filter.
+     * @return List of {@link PersonDTO}.
+     * @throws MissingDataException if DNI is blank.
      */
     public List<PersonDTO> getPersonByDNI (String DNI){
         if (DNI.isBlank()){
@@ -180,11 +181,11 @@ public class PersonService {
     }
 
     /**
-     * Retrieves a list of PersonDTOs filtered by name (contains).
+     * Finds persons whose name contains the given string.
      *
-     * @param name the name substring to search
-     * @return list of matching PersonDTOs
-     * @throws MissingDataException if name is blank
+     * @param name Name filter.
+     * @return List of {@link PersonDTO}.
+     * @throws MissingDataException if name is blank.
      */
     public List<PersonDTO> getPersonByName (String name){
         if (name.isBlank()){
@@ -195,11 +196,11 @@ public class PersonService {
     }
 
     /**
-     * Retrieves a list of PersonDTOs filtered by cell phone number (contains).
+     * Finds persons whose cellphone contains the given string.
      *
-     * @param cellPhoneNumber the phone number substring to search
-     * @return list of matching PersonDTOs
-     * @throws MissingDataException if the phone number is blank
+     * @param cellPhoneNumber Cellphone filter.
+     * @return List of {@link PersonDTO}.
+     * @throws MissingDataException if cellphone is blank.
      */
     public List<PersonDTO> getPersonByCellphone (String cellPhoneNumber){
         if (cellPhoneNumber.isBlank()){
@@ -210,11 +211,11 @@ public class PersonService {
     }
 
     /**
-     * Retrieves a list of PersonDTOs with an exact number of reservations.
+     * Finds persons with exactly the given number of reservations.
      *
-     * @param numberOfReservations exact reservation count to match
-     * @return list of matching PersonDTOs
-     * @throws MissingDataException if number is negative
+     * @param numberOfReservations Number of reservations.
+     * @return List of {@link PersonDTO}.
+     * @throws MissingDataException if numberOfReservations is negative.
      */
     public List<PersonDTO> getPersonByReservations (int numberOfReservations){
         if (numberOfReservations < 0){
@@ -225,11 +226,11 @@ public class PersonService {
     }
 
     /**
-     * Retrieves a list of PersonDTOs with more than a certain number of reservations.
+     * Finds persons with more than the given number of reservations.
      *
-     * @param numberOfReservations minimum exclusive number of reservations
-     * @return list of matching PersonDTOs
-     * @throws MissingDataException if number is negative
+     * @param numberOfReservations Number of reservations.
+     * @return List of {@link PersonDTO}.
+     * @throws MissingDataException if numberOfReservations is negative.
      */
     public List<PersonDTO> getPersonByReservationsGreaterThan (int numberOfReservations){
         if (numberOfReservations < 0){
@@ -240,11 +241,11 @@ public class PersonService {
     }
 
     /**
-     * Retrieves a list of PersonDTOs with fewer than a certain number of reservations.
+     * Finds persons with fewer than the given number of reservations.
      *
-     * @param numberOfReservations maximum exclusive number of reservations
-     * @return list of matching PersonDTOs
-     * @throws MissingDataException if number is negative
+     * @param numberOfReservations Number of reservations.
+     * @return List of {@link PersonDTO}.
+     * @throws MissingDataException if numberOfReservations is negative.
      */
     public List<PersonDTO> getPersonByReservationsLessThan (int numberOfReservations){
         if (numberOfReservations < 0){
@@ -255,11 +256,12 @@ public class PersonService {
     }
 
     /**
-     * Retrieves a person associated with the given reservation ID.
+     * Finds a person by the reservation ID.
      *
-     * @param reservation the ID of the reservation linked to the person
-     * @return a {@link PersonDTO} containing the person's information
-     * @throws MissingDataException if the reservation ID is less than 0
+     * @param reservation Reservation ID.
+     * @return {@link PersonDTO} representing the person.
+     * @throws MissingDataException        if reservation ID is negative.
+     * @throws NotFoundInDatabaseException if the person cannot be found.
      */
     public PersonDTO getPersonByReservationId (int reservation){
         if (reservation < 0){
@@ -277,12 +279,13 @@ public class PersonService {
     }
 
     /**
-     * Updates information for an existing person based on the provided ID and data.
-     * Only non-blank fields and valid values from the DTO will be updated.
+     * Updates an existing {@link Person} entity with the provided data.
      *
-     * @param personId the ID of the person to update
-     * @param dto the data transfer object containing the new person data
-     * @return the updated {@link Person} entity
+     * @param personId ID of the person to update.
+     * @param dto      {@link PersonDTO} containing updated values.
+     * @return Updated {@link Person} entity.
+     * @throws NotFoundInDatabaseException if the person cannot be found.
+     * @throws MissingDataException        if updated data is invalid.
      */
     @Transactional
     public Person updatePersonInfo(Long personId, PersonDTO dto){
@@ -314,11 +317,12 @@ public class PersonService {
     }
 
     /**
-     * Deletes a person by their ID only if they do not have an active reservation.
+     * Deletes a {@link Person} entity by ID.
+     * Deletion is not allowed if the person has an active reservation.
      *
-     * @param id the ID of the person to delete
-     * @throws MissingDataException if the ID is null
-     * @throws MissingDataException if the person has an active reservation
+     * @param id ID of the person to delete.
+     * @throws MissingDataException        if ID is null or the person has an active reservation.
+     * @throws NotFoundInDatabaseException if the person cannot be found.
      */
     @Transactional
     public void deletePersonByID(Long id){

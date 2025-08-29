@@ -16,6 +16,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Service class responsible for managing {@link Address} entities.
+ * Provides CRUD operations for addresses associated with {@link Hotel} and {@link Person} entities.
+ * It ensures proper validation and converts entities to {@link AddressDTO} when needed.
+ *
+ * Relationships:
+ * - {@link Address} can be linked to either a {@link Hotel} or a {@link Person}, but never both.
+ * - {@link Address} references a {@link States} entity to specify the location.
+ * - Interacts with {@link HotelRepository} and {@link PersonRepository} to resolve related entities.
+ */
 @Service
 public class AddressService {
 
@@ -31,6 +41,16 @@ public class AddressService {
         this.personRepository = personRepository;
     }
 
+    /**
+     * Validates address information.
+     *
+     * @param street      Street name. Must not be blank.
+     * @param number      Street number. Must not be blank.
+     * @param stateCode   State code. Must not be blank.
+     * @param personId    ID of a person associated with the address. Nullable.
+     * @param hotelId     ID of a hotel associated with the address. Nullable.
+     * @throws MissingDataException if validation rules are violated.
+     */
     private void validate(String street, String number, String stateCode, Long personId, Long hotelId){
         if (hotelId != null && personId != null){
             throw new MissingDataException("An address registry only cant point to Person or Hotel entity, never both.");
@@ -49,6 +69,12 @@ public class AddressService {
         }
     }
 
+    /**
+     * Converts a list of {@link Address} entities to {@link AddressDTO} objects.
+     *
+     * @param list List of {@link Address} entities.
+     * @return List of {@link AddressDTO} objects.
+     */
     private List<AddressDTO> parseFromAddressEntityToAddressDTO(List<Address> list){
         return list.stream().map(address ->
              AddressDTO.builder()
@@ -63,6 +89,14 @@ public class AddressService {
         ).toList();
     }
 
+    /**
+     * Creates a new {@link Address} entity and links it to a {@link Hotel} or {@link Person}.
+     *
+     * @param dto {@link AddressDTO} containing address data.
+     * @return The created {@link Address} entity.
+     * @throws ConflictStateException if both hotelId and personId are provided.
+     * @throws MissingDataException   if required data is missing or invalid.
+     */
     @Transactional
     public Address createAddress(AddressDTO dto){
         validate(dto.getStreet(), dto.getStreet(), dto.getStateId(), dto.getPersonId(), dto.getHotelId());
@@ -95,6 +129,14 @@ public class AddressService {
         return address;
     }
 
+    /**
+     * Retrieves an {@link Address} entity by its ID.
+     *
+     * @param id ID of the address. Must be greater than 0.
+     * @return {@link Address} entity.
+     * @throws MissingDataException        if ID is invalid.
+     * @throws NotFoundInDatabaseException if no entity is found with the provided ID.
+     */
     public Address getAddressByIdEntity(Long id){
         if (id == null || id < 1){
             throw new MissingDataException("Insert a valid ID value.");
@@ -103,6 +145,14 @@ public class AddressService {
         return addressRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Cannot found this register in the DataBase."));
     }
 
+    /**
+     * Retrieves an {@link AddressDTO} by the address ID.
+     *
+     * @param id ID of the address. Must be greater than 0.
+     * @return {@link AddressDTO} with all associated information.
+     * @throws MissingDataException        if ID is invalid.
+     * @throws NotFoundInDatabaseException if no entity is found with the provided ID.
+     */
     public AddressDTO getAddressByIdResponse(Long id){
         if (id == null || id < 1){
             throw new MissingDataException("Insert a valid ID value.");
@@ -121,6 +171,17 @@ public class AddressService {
                 .personId(result.getPerson().getId()).build();
     }
 
+    /**
+     * Retrieves a list of addresses for a specific department.
+     *
+     * @param street           Street name.
+     * @param number           Street number.
+     * @param cityCode         State code.
+     * @param floor            Floor number.
+     * @param departmentNumber Department number.
+     * @return List of {@link AddressDTO} objects matching the criteria.
+     * @throws MissingDataException if any of the required parameters are blank.
+     */
     public List<AddressDTO> getAddressByLocationInDepartment(String street, String number,String cityCode, String floor, String departmentNumber){
         if (street.isBlank() || number.isBlank() || cityCode.isBlank() || floor.isBlank() || departmentNumber.isBlank()){
             throw new MissingDataException("Please, insert all required data to identify a department on the DataBase.");
@@ -129,6 +190,15 @@ public class AddressService {
         return parseFromAddressEntityToAddressDTO(addressRepository.findByStateAndStreetAndNumberAndFloorAndDepartmentNumber(street, number, cityCode, floor, departmentNumber));
     }
 
+    /**
+     * Retrieves a list of addresses for a house.
+     *
+     * @param street   Street name.
+     * @param number   Street number.
+     * @param cityCode State code.
+     * @return List of {@link AddressDTO} objects matching the criteria.
+     * @throws MissingDataException if any of the required parameters are blank.
+     */
     public List<AddressDTO> getAddressByLocationInHouse(String street, String number,String cityCode){
         if (street.isBlank() || number.isBlank() || cityCode.isBlank()){
             throw new MissingDataException("Please, insert all required data to identify a house on the DataBase.");
@@ -137,6 +207,14 @@ public class AddressService {
         return parseFromAddressEntityToAddressDTO(addressRepository.findByStreetAndNumberAndCityCode(street, number, cityCode));
     }
 
+    /**
+     * Updates an existing {@link Address} entity.
+     *
+     * @param id  ID of the address to update.
+     * @param dto {@link AddressDTO} containing new address data.
+     * @return Updated {@link AddressDTO}.
+     * @throws MissingDataException if ID is invalid or required fields are missing.
+     */
     @Transactional
     public AddressDTO updateAddress(Long id, AddressDTO dto){
         if (id == null || id < 1){
@@ -173,6 +251,12 @@ public class AddressService {
                 .personId(addressInDb.getPerson().getId()).build();
     }
 
+    /**
+     * Deletes an {@link Address} entity by its ID.
+     *
+     * @param id ID of the address to delete. Must be greater than 0.
+     * @throws MissingDataException if ID is invalid.
+     */
     @Transactional
     public void deleteAddress(Long id){
         if (id == null || id < 1){

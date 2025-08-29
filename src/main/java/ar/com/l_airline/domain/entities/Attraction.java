@@ -9,9 +9,23 @@ import java.sql.Time;
 import java.time.LocalTime;
 
 /**
- * Entity representing an attraction that belongs to a hotel.
- * Contains information about the attraction's name, description,
- * operating hours, capacity, and the associated hotel.
+ * Represents an Attraction entity within the application.
+ * <p>
+ * This class maps to the "entity_attraction" table in the database.
+ * It stores information about attractions associated with a hotel, including
+ * name, description, visitor capacity, and operating hours.
+ * </p>
+ * <p>
+ * Relationships:
+ * <ul>
+ *     <li>{@link Hotel}: Many-to-One relationship. Each attraction is linked to a single hotel.</li>
+ * </ul>
+ * </p>
+ * <p>
+ * Fields such as openAt and closeAt define the daily operating hours,
+ * and peopleCapacity indicates the maximum number of visitors allowed.
+ * The description field provides detailed information about the attraction.
+ * </p>
  */
 @Entity
 @Table(name = "entity_attraction")

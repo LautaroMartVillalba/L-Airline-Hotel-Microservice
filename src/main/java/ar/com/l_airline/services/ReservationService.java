@@ -20,10 +20,9 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Service class responsible for handling business logic related to Reservations.
- * <p>
- * Provides validation methods, entity-to-DTO conversion logic, and interacts with
- * repositories and other services to process reservation-related operations.
+ * Service layer for managing {@link Reservation} entities.
+ * Provides methods to create, retrieve, and query reservations
+ * based on number of people, number of nights, or by ID.
  */
 @Service
 public class ReservationService {
@@ -41,24 +40,25 @@ public class ReservationService {
     }
 
     /**
-     * Validates that an ID is not null and greater than zero.
+     * Validates that an ID is valid for the given entity.
      *
-     * @param id the ID to validate
-     * @param entity the name of the entity (used in exception message)
-     * @throws MissingDataException if ID is null or less than 1
+     * @param id     ID to validate.
+     * @param entity Entity name used in exception messages.
+     * @throws MissingDataException if the ID is null or less than 1.
      */
     private void validateId(Long id, String entity){
         if (id == null || id < 1){
             throw new MissingDataException(entity + " id cannot be null or less than zero.");
         }
     }
+
     /**
-     * Validates that both reservation dates are provided and that the start date
-     * is not in the past and the end date is not before the start date.
+     * Validates reservation dates and returns the number of nights.
      *
-     * @param startAt the reservation start date
-     * @param endAt the reservation end date
-     * @throws MissingDataException if validation fails
+     * @param startAt Start date of the reservation.
+     * @param endAt   End date of the reservation.
+     * @return Number of nights between start and end date.
+     * @throws MissingDataException if dates are null or invalid.
      */
     private Long validateAndGetReservationDate(LocalDate startAt, LocalDate endAt){
         if (startAt == null || endAt == null){
@@ -69,12 +69,12 @@ public class ReservationService {
         }
         return ChronoUnit.DAYS.between(startAt, endAt);
     }
+
     /**
-     * Validates the number of people in the reservation.
-     * The Acceptable range is from 1 to 4 inclusive.
+     * Validates that the number of people is within the allowed range.
      *
-     * @param numberOfPeople the number of people to validate
-     * @throws MissingDataException if number is outside the valid range
+     * @param numberOfPeople Number of people for the reservation.
+     * @throws MissingDataException if number of people is less than 1 or greater than 4.
      */
     private void validateNumberOfPeople(Long numberOfPeople){
         if (numberOfPeople < 1 || numberOfPeople > 4){
@@ -82,6 +82,14 @@ public class ReservationService {
         }
     }
 
+    /**
+     * Checks if the target room is available for reservation during the given dates.
+     *
+     * @param roomId  ID of the room to check.
+     * @param startAt Start date.
+     * @param endAt   End date.
+     * @throws MissingDataException if the room is already reserved during the given period.
+     */
     private void validateIfTargetRoomIsReserved(Long roomId, LocalDate startAt, LocalDate endAt){
         List<RoomDTO> freeRoomsInReservationDate = roomService.getFreeRoomsByScheduleBetween(startAt, endAt);
 
@@ -91,10 +99,10 @@ public class ReservationService {
     }
 
     /**
-     * Converts a list of Reservation entities into a list of ReservationDTOs.
+     * Converts a list of {@link Reservation} entities into a list of {@link ReservationDTO}.
      *
-     * @param list the list of Reservation entities to convert
-     * @return a list of ReservationDTOs, or an empty list if input is empty
+     * @param list List of {@link Reservation} entities.
+     * @return List of {@link ReservationDTO}.
      */
     List<ReservationDTO> convertFromEntityListToDTOList(List<Reservation> list){
         if (list.isEmpty()){
@@ -120,17 +128,14 @@ public class ReservationService {
     }
 
     /**
-     * Creates a new reservation with the provided reservation and person data.
-     * <p>
-     * This method performs multiple validations, including reservation dates and number of people.
-     * It also ensures that the room is not already reserved during the specified date range.
-     * If the person does not exist, a new one is created.
-     * The room is then marked as RESERVED.
+     * Creates a new {@link Reservation} entity, associates it with a person and a room,
+     * and updates the room booking period and room state accordingly.
      *
-     * @param dto the reservation data transfer object containing reservation info
-     * @param personDTO the person data transfer object for client creation if needed
-     * @return the created Reservation entity
-     * @throws MissingDataException if any validation fails or if the room is already booked
+     * @param dto        {@link ReservationDTO} containing reservation data.
+     * @param personDTO  {@link PersonDTO} containing person data if a new person is created.
+     * @param addressDTO {@link AddressDTO} containing the person's address if a new person is created.
+     * @return The created {@link Reservation} entity.
+     * @throws MissingDataException if validation fails for people, dates, or room availability.
      */
     @Transactional
     public Reservation createReservation(ReservationDTO dto, PersonDTO personDTO, AddressDTO addressDTO) {
@@ -172,23 +177,26 @@ public class ReservationService {
     }
 
     /**
-     * Retrieves a reservation entity by its ID.
+     * Retrieves a {@link Reservation} entity by its ID.
      *
-     * @param id the ID of the reservation
-     * @return the Reservation entity
-     * @throws MissingDataException if the ID is invalid or the reservation does not exist
+     * @param id ID of the reservation.
+     * @return {@link Reservation} entity.
+     * @throws MissingDataException        if the ID is null or invalid.
+     * @throws NotFoundInDatabaseException if the reservation cannot be found.
      */
     public Reservation getById(Long id) {
         validateId(id, "Reservation");
 
         return reservationRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
     }
+
     /**
-     * Retrieves a reservation by its ID and converts it into a DTO representation.
+     * Retrieves a {@link ReservationDTO} by reservation ID.
      *
-     * @param id the ID of the reservation
-     * @return the ReservationDTO for the requested reservation
-     * @throws MissingDataException if the ID is invalid or the reservation does not exist
+     * @param id ID of the reservation.
+     * @return {@link ReservationDTO} representing the reservation.
+     * @throws MissingDataException        if the ID is null or invalid.
+     * @throws NotFoundInDatabaseException if the reservation cannot be found.
      */
     public ReservationDTO getByIdResponse(Long id) {
         validateId(id, "Reservation");
@@ -206,12 +214,11 @@ public class ReservationService {
     }
 
     /**
-     * Retrieves a list of reservations filtered by the number of people,
-     * and converts the result into a list of DTOs.
+     * Retrieves all reservations with the specified number of people.
      *
-     * @param people the number of people in the reservation
-     * @return list of ReservationDTOs matching the specified number of people
-     * @throws MissingDataException if the number of people is outside the valid range [1, 4]
+     * @param people Number of people in the reservation.
+     * @return List of {@link ReservationDTO} matching the number of people.
+     * @throws MissingDataException if the number of people is not between 1 and 4.
      */
     public List<ReservationDTO> getByNumberOfPeople(int people) {
         if (people < 1 || people > 4) {
@@ -222,12 +229,11 @@ public class ReservationService {
     }
 
     /**
-     * Retrieves a list of reservations that match the specified number of nights,
-     * and converts them to DTOs.
+     * Retrieves all reservations with the specified number of nights.
      *
-     * @param nights the number of nights to filter by (must be >= 1)
-     * @return list of ReservationDTOs with the specified number of nights
-     * @throws MissingDataException if the number of nights is less than 1
+     * @param nights Number of nights in the reservation.
+     * @return List of {@link ReservationDTO} matching the number of nights.
+     * @throws MissingDataException if the number of nights is less than 1.
      */
     public List<ReservationDTO> getByNumberOfNight(int nights) {
         if (nights < 1) {
@@ -238,13 +244,12 @@ public class ReservationService {
     }
 
     /**
-     * Retrieves a list of reservations that match both the specified number of people
-     * and number of nights, and converts them to DTOs.
+     * Retrieves all reservations matching both the specified number of people and nights.
      *
-     * @param people number of people in the reservation (must be 1-4)
-     * @param night number of nights in the reservation (must be >= 1)
-     * @return list of ReservationDTOs matching both filters
-     * @throws MissingDataException if validation fails for either parameter
+     * @param people Number of people for the reservation.
+     * @param night  Number of nights for the reservation.
+     * @return List of {@link ReservationDTO} matching both criteria.
+     * @throws MissingDataException if the number of people is not between 1 and 4 or nights is less than 1.
      */
     public List<ReservationDTO> getByPeopleAndNights(int people, int night) {
         if (people < 1 || people > 4) {
@@ -258,12 +263,11 @@ public class ReservationService {
     }
 
     /**
-     * Retrieves reservations that start after the specified date,
-     * and converts them to DTOs.
+     * Retrieves all reservations starting on or after the specified date.
      *
-     * @param date the minimum start date (exclusive)
-     * @return list of ReservationDTOs starting after the specified date
-     * @throws MissingDataException if the date is null
+     * @param date Start date filter.
+     * @return List of {@link ReservationDTO} starting on or after the given date.
+     * @throws MissingDataException if the date is null.
      */
     public List<ReservationDTO> getByStartIn(LocalDate date) {
         if (date == null) {
@@ -274,12 +278,11 @@ public class ReservationService {
     }
 
     /**
-     * Retrieves reservations that end before the specified date,
-     * and converts them to DTOs.
+     * Retrieves all reservations ending on or before the specified date.
      *
-     * @param date the maximum end date (exclusive)
-     * @return list of ReservationDTOs ending before the specified date
-     * @throws MissingDataException if the date is null
+     * @param date End date filter.
+     * @return List of {@link ReservationDTO} ending on or before the given date.
+     * @throws MissingDataException if the date is null.
      */
     public List<ReservationDTO> getByFinishIn(LocalDate date) {
         if (date == null) {
@@ -290,13 +293,12 @@ public class ReservationService {
     }
 
     /**
-     * Retrieves reservations that start after the given start date and end before
-     * the given end date, and converts them to DTOs.
+     * Retrieves all reservations between the specified start and end dates.
      *
-     * @param start the lower bound for reservation start date (exclusive)
-     * @param end the upper bound for reservation end date (exclusive)
-     * @return list of ReservationDTOs within the specified date range
-     * @throws MissingDataException if either date is null
+     * @param start Start date of the period.
+     * @param end   End date of the period.
+     * @return List of {@link ReservationDTO} between the given dates.
+     * @throws MissingDataException if either date is null.
      */
     public List<ReservationDTO> getByBetweenDates(LocalDate start, LocalDate end) {
         if (start == null || end == null) {
@@ -307,12 +309,11 @@ public class ReservationService {
     }
 
     /**
-     * Retrieves all reservations associated with a given room ID,
-     * and converts them to DTOs.
+     * Retrieves all reservations associated with a specific room.
      *
-     * @param roomId the ID of the room
-     * @return list of ReservationDTOs for the specified room
-     * @throws MissingDataException if the ID is null or less than 1
+     * @param roomId ID of the room.
+     * @return List of {@link ReservationDTO} for the specified room.
+     * @throws MissingDataException if the room ID is less than 1.
      */
     public List<ReservationDTO> getByRoom(Long roomId) {
         if (roomId < 1) {
@@ -323,12 +324,11 @@ public class ReservationService {
     }
 
     /**
-     * Retrieves all reservations made by a specific client (person ID),
-     * and converts them to DTOs.
+     * Retrieves all reservations associated with a specific client.
      *
-     * @param clientId the ID of the client (person)
-     * @return list of ReservationDTOs associated with the specified client
-     * @throws MissingDataException if the ID is null or less than 1
+     * @param clientId ID of the client.
+     * @return List of {@link ReservationDTO} for the specified client.
+     * @throws MissingDataException if the client ID is less than 1.
      */
     public List<ReservationDTO> getByClient(Long clientId) {
         if (clientId < 1) {
@@ -339,15 +339,14 @@ public class ReservationService {
     }
 
     /**
-     * Updates an existing reservation with the provided data.
-     * <p>
-     * Only non-null and valid fields from the DTO are applied to the existing reservation.
-     * The updated reservation is then validated (dates and number of people).
+     * Updates an existing reservation with the provided {@link ReservationDTO}.
+     * Validates the room availability, number of people, and reservation dates.
      *
-     * @param reservationId the ID of the reservation to update
-     * @param dto the ReservationDTO containing the updated fields
-     * @return the updated Reservation entity
-     * @throws MissingDataException if the reservation does not exist or if validation fails
+     * @param reservationId ID of the reservation to update.
+     * @param dto           {@link ReservationDTO} containing updated data.
+     * @return Updated {@link Reservation} entity.
+     * @throws MissingDataException        if validation fails for people, dates, or room availability.
+     * @throws NotFoundInDatabaseException if the reservation cannot be found.
      */
     @Transactional
     public Reservation update(Long reservationId, ReservationDTO dto) {
@@ -382,14 +381,13 @@ public class ReservationService {
     }
 
     /**
-     * Deletes an existing reservation by its ID.
-     * <p>
-     * The reservation can only be deleted if it is not currently active
-     * (i.e., the current date is not within the reservation range).
-     * Upon deletion, the room state is reset to FREE.
+     * Deletes a reservation by its ID.
+     * If the reservation is currently active (start date before today and end date after today),
+     * it cannot be deleted. Frees the associated room after deletion.
      *
-     * @param reservationId the ID of the reservation to delete
-     * @throws MissingDataException if the reservation is currently active or does not exist
+     * @param reservationId ID of the reservation to delete.
+     * @throws MissingDataException        if the reservation is active or ID is invalid.
+     * @throws NotFoundInDatabaseException if the reservation cannot be found.
      */
     @Transactional
     public void delete(Long reservationId) {

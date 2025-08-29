@@ -7,7 +7,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import ar.com.l_airline.domain.entities.RoomBookingPeriod;
 
+/**
+ * Data Transfer Object for {@link RoomBookingPeriod}.
+ * <p>
+ * Used to transfer room booking period data between layers without exposing the entity directly.
+ * Contains booking period dates, status, and references to the associated room and reservation.
+ * </p>
+ */
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder

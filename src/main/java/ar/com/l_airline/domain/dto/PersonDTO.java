@@ -1,7 +1,15 @@
 package ar.com.l_airline.domain.dto;
 
 import lombok.*;
+import ar.com.l_airline.domain.entities.Person;
 
+/**
+ * Data Transfer Object for {@link Person}.
+ * <p>
+ * Used to transfer person (client) data between layers without exposing the entity directly.
+ * Contains basic personal information, reservation reference, and address details.
+ * </p>
+ */
 @AllArgsConstructor
 @Getter
 @Setter

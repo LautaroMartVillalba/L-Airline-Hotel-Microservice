@@ -13,22 +13,26 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Represents a room entity in the hotel domain.
- *
- * <p>This class is mapped to the "entity_room" table in the database. It defines the
- * structure and attributes of a room, including bed configuration,
- * capacity, type, state, and associated hotel.</p>
- *
- * <p>Annotations:</p>
+ * Represents a Room entity within the application.
+ * <p>
+ * This class maps to the "entity_room" table in the database.
+ * It contains detailed information about a hotel room, including its floor, bed configuration,
+ * capacity, type, state, booking count, and pricing.
+ * </p>
+ * <p>
+ * Relationships:
  * <ul>
- *   <li>{@code @Entity} marks this class as a JPA entity.</li>
- *   <li>{@code @Table(name = "entity_room")} maps it to the "entity_room" table.</li>
- *   <li>Lombok annotations like {@code @Getter}, {@code @Setter}, {@code @Builder}, etc.,
- *       automatically generate boilerplate code.</li>
- *   <li>{@code @ToString(exclude = "hotel")} avoids recursive printing when logging or debugging.</li>
+ *     <li>{@link Hotel}: Many-to-One relationship. Each room belongs to a single hotel.</li>
+ *     <li>{@link Reservation}: One-to-Many relationship. A room can have multiple reservations.</li>
+ *     <li>{@link RoomBookingPeriod}: One-to-Many relationship. A room can have multiple booking periods.</li>
  * </ul>
+ * </p>
+ * <p>
+ * The roomType, bedType, and state fields use enumerated types to define predefined categories.
+ * The timesBooked field tracks the number of times the room has been booked, and
+ * pricePerNight indicates the cost per night for the room.
+ * </p>
  */
-
 @Entity
 @Table(name = "entity_room")
 @AllArgsConstructor

@@ -6,10 +6,22 @@ import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
 
 import java.math.BigDecimal;
 
+/**
+ * Utility class to calculate the price of a hotel room based on multiple factors.
+ * Factors include base price, room type, bed type, floor, and people capacity.
+ */
 public class RoomPriceGenerator {
 
+    /** Base price for a room before applying any multipliers. */
     private static final BigDecimal BASE_ROOM_PRICE = BigDecimal.valueOf(20);
 
+    /**
+     * Calculates the price increase factor based on the floor number.
+     *
+     * @param floor Floor number of the room.
+     * @return Multiplier to apply for floor-based price increase.
+     * @throws MissingDataException if floor is less than or equal to 0.
+     */
     private static float priceIncreaseByFloor (int floor){
         if (floor <= 0){
             throw new MissingDataException("Please, insert a valid floor number");
@@ -19,6 +31,15 @@ public class RoomPriceGenerator {
         }
         return (float) floor/100+1;
     }
+
+
+    /**
+     * Calculates the price increase factor based on the room's people capacity.
+     *
+     * @param peopleCapacity Number of people the room can accommodate.
+     * @return Multiplier to apply for people capacity.
+     * @throws MissingDataException if peopleCapacity is not between 1 and 4.
+     */
     private static float priceIncreaseByPeopleCapacity(int peopleCapacity){
         switch (peopleCapacity){
             case 1 -> {
@@ -37,6 +58,16 @@ public class RoomPriceGenerator {
         throw new MissingDataException("Please, insert a valid people capacity.");
     }
 
+    /**
+     * Generates the final price of a room based on its attributes.
+     *
+     * @param roomType       {@link RoomType} of the room.
+     * @param bedsType       {@link BedsType} of the room.
+     * @param floor          Floor number of the room.
+     * @param peopleCapacity Number of people the room can accommodate.
+     * @return {@link BigDecimal} representing the calculated room price.
+     * @throws MissingDataException if any input is invalid.
+     */
     public static BigDecimal priceGenerator(RoomType roomType, BedsType bedsType, int floor, int peopleCapacity){
         return BASE_ROOM_PRICE
                 .multiply(BigDecimal.valueOf(roomType.getMultiplier()))

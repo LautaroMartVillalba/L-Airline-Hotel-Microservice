@@ -1,13 +1,16 @@
 package ar.com.l_airline.domain.dto;
 
-import ar.com.l_airline.domain.entities.Hotel;
 import lombok.*;
 
 import java.time.LocalTime;
+import ar.com.l_airline.domain.entities.Benefit;
 
 /**
- * Data Transfer Object (DTO) for the {@link ar.com.l_airline.domain.entities.Benefit} entity.
- * Used to transfer benefit data across layers without exposing the full entity.
+ * Data Transfer Object for {@link Benefit}.
+ * <p>
+ * Used to transfer benefit (service) data between layers without exposing the entity directly.
+ * Contains basic benefit fields and reference to the associated hotel.
+ * </p>
  */
 @AllArgsConstructor
 @Getter

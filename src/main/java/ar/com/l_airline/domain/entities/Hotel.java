@@ -12,9 +12,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents a Hotel entity mapped to the "entity_hotel" table in the database.
- * This entity contains basic hotel data including the number of rooms, star rating,
- * and its associations with rooms, benefits, and attractions.
+ * Represents a Hotel entity within the application.
+ * <p>
+ * This class maps to the "entity_hotel" table in the database.
+ * It contains fundamental information about a hotel, including its name,
+ * star rating, room capacity, contact information, and associations with other entities.
+ * </p>
+ * <p>
+ * Relationships:
+ * <ul>
+ *     <li>{@link Room}: One-to-Many relationship. A hotel can have multiple rooms.</li>
+ *     <li>{@link Benefit}: One-to-Many relationship. A hotel can provide multiple benefits.</li>
+ *     <li>{@link Attraction}: One-to-Many relationship. A hotel can have multiple nearby attractions.</li>
+ *     <li>{@link Address}: One-to-One relationship. Each hotel has a unique address.</li>
+ * </ul>
+ * </p>
+ * <p>
+ * Fields like totalRooms, freeRooms, and reservedRooms allow tracking room availability.
+ * The contactPhone field ensures a unique contact number for the hotel.
+ * </p>
  */
 @Entity
 @Table(name = "entity_hotel")

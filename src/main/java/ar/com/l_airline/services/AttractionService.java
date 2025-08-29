@@ -14,8 +14,12 @@ import java.time.LocalTime;
 import java.util.List;
 
 /**
- * Service class responsible for handling business logic related to {@link Attraction}.
- * It provides methods for creating, retrieving, and transforming attractions.
+ * Service class responsible for managing {@link Attraction} entities.
+ * Provides CRUD operations and search functionalities for attractions associated with {@link Hotel} entities.
+ *
+ * Relationships:
+ * - {@link Attraction} is associated with a single {@link Hotel}.
+ * - Interacts with {@link AttractionRepository} and {@link HotelRepository} to persist and retrieve entities.
  */
 @Service
 public class AttractionService {
@@ -29,6 +33,16 @@ public class AttractionService {
         this.hotelRepository = hotelRepository;
     }
 
+    /**
+     * Validates the basic information of an attraction.
+     *
+     * @param name           Name of the attraction. Must not be null or blank.
+     * @param description    Description of the attraction. Must not be null or blank.
+     * @param peopleCapacity Maximum capacity of people for the attraction. Must be >= 1.
+     * @param openAt         Opening time of the attraction. Must not be null.
+     * @param closeAt        Closing time of the attraction. Must not be null.
+     * @throws MissingDataException if any parameter is invalid.
+     */
     private void validateInfo(String name, String description, int peopleCapacity, LocalTime openAt, LocalTime closeAt){
         if (name == null || name.isBlank()) {
             throw new MissingDataException("Insert the attraction name.");
@@ -48,10 +62,10 @@ public class AttractionService {
     }
 
     /**
-     * Maps a list of {@link Attraction} entities to a list of {@link AttractionDTO}.
+     * Converts a list of {@link Attraction} entities to {@link AttractionDTO}.
      *
-     * @param list list of Attraction entities
-     * @return list of AttractionDTOs
+     * @param list List of {@link Attraction} entities.
+     * @return List of {@link AttractionDTO} objects.
      */
     public List<AttractionDTO> parseFromAttractionListToAttractionDTOList(List<Attraction> list){
         return list.stream().map(attraction -> {
@@ -68,12 +82,13 @@ public class AttractionService {
     }
 
     /**
-     * Creates and persists a new attraction for a given hotel.
+     * Creates a new {@link Attraction} and associates it with a {@link Hotel}.
      *
-     * @param dto data transfer object containing attraction details
-     * @param hotelId ID of the hotel the attraction belongs to
-     * @return the persisted Attraction entity
-     * @throws MissingDataException if validation fails or hotel does not exist
+     * @param dto     {@link AttractionDTO} containing attraction data.
+     * @param hotelId ID of the hotel to associate the attraction with.
+     * @return The created {@link Attraction} entity.
+     * @throws MissingDataException if required fields are missing.
+     * @throws NotFoundInDatabaseException if the hotel does not exist.
      */
     @Transactional
     public Attraction createAttraction(AttractionDTO dto, Long hotelId) {
@@ -94,11 +109,12 @@ public class AttractionService {
     }
 
     /**
-     * Retrieves an attraction by ID and maps it to a DTO.
+     * Retrieves an {@link AttractionDTO} by attraction ID.
      *
-     * @param id the attraction ID
-     * @return DTO representing the attraction
-     * @throws MissingDataException if the ID is invalid or attraction is not found
+     * @param id ID of the attraction.
+     * @return {@link AttractionDTO} corresponding to the provided ID.
+     * @throws MissingDataException        if ID is null or invalid.
+     * @throws NotFoundInDatabaseException if no attraction is found.
      */
     public AttractionDTO getAttractionByIdDTO(Long id) {
         if (id == null || id < 1) {
@@ -114,12 +130,14 @@ public class AttractionService {
                 .openAt(attractionInDB.getOpenAt())
                 .closeAt(attractionInDB.getCloseAt()).build();
     }
+
     /**
-     * Retrieves an attraction entity by ID.
+     * Retrieves an {@link Attraction} entity by its ID.
      *
-     * @param id the attraction ID
-     * @return an Optional containing the Attraction if found, or empty otherwise
-     * @throws MissingDataException if the ID is invalid
+     * @param id ID of the attraction. Must be greater than 0.
+     * @return {@link Attraction} entity.
+     * @throws MissingDataException        if ID is invalid.
+     * @throws NotFoundInDatabaseException if the attraction is not found.
      */
     public Attraction getAttractionByIdObject(Long id) {
         if (id <= 0) {
@@ -130,11 +148,11 @@ public class AttractionService {
     }
 
     /**
-     * Searches for attractions whose names contain the specified substring.
+     * Retrieves a list of attractions whose names contain the specified string.
      *
-     * @param name substring to match
-     * @return a list of matching AttractionDTOs, or an empty list if none are found
-     * @throws MissingDataException if the name is blank
+     * @param name Partial or full name of the attraction. Must not be blank.
+     * @return List of {@link AttractionDTO} matching the search criteria.
+     * @throws MissingDataException if name is blank.
      */
     public List<AttractionDTO> getAttractionByName(String name) {
         if (name.isBlank()) {
@@ -145,11 +163,11 @@ public class AttractionService {
     }
 
     /**
-     * Searches for attractions whose descriptions contain the specified substring.
+     * Retrieves a list of attractions whose descriptions contain the specified string.
      *
-     * @param desc substring to match
-     * @return a list of matching AttractionDTOs, or an empty list if none are found
-     * @throws MissingDataException if the description is blank
+     * @param desc Partial or full description of the attraction. Must not be blank.
+     * @return List of {@link AttractionDTO} matching the description.
+     * @throws MissingDataException if description is blank.
      */
     List<AttractionDTO> getAttractionByDesc(String desc) {
         if (desc.isBlank()) {
@@ -160,12 +178,12 @@ public class AttractionService {
     }
 
     /**
-     * Retrieves a list of attractions whose capacity falls within the specified range.
+     * Retrieves a list of attractions whose capacities fall within a given range.
      *
-     * @param min the minimum allowed people capacity
-     * @param max the maximum allowed people capacity
-     * @return a list of matching AttractionDTOs, or an empty list if none are found
-     * @throws MissingDataException if provided values are invalid or logically inconsistent
+     * @param min Minimum number of people. Must be > 0.
+     * @param max Maximum number of people. Must be >= min.
+     * @return List of {@link AttractionDTO} matching the capacity range.
+     * @throws MissingDataException if the values are invalid.
      */
     List<AttractionDTO> getAttractionByCapacity(int min, int max) {
         if (min <= 0 || min > max) {
@@ -176,11 +194,11 @@ public class AttractionService {
     }
 
     /**
-     * Retrieves a list of attractions that open after the specified time.
+     * Retrieves a list of attractions that open after a specified time.
      *
-     * @param time the lower bound for opening time
-     * @return a list of AttractionDTOs, or an empty list if none are found
-     * @throws MissingDataException if the input time is null
+     * @param time Opening time filter. Must not be null.
+     * @return List of {@link AttractionDTO} that open after the given time.
+     * @throws MissingDataException if time is null.
      */
     List<AttractionDTO> getAttractionByOpening(LocalTime time) {
         if (time == null) {
@@ -191,11 +209,11 @@ public class AttractionService {
     }
 
     /**
-     * Retrieves a list of attractions that close before the specified time.
+     * Retrieves a list of attractions that close before a specified time.
      *
-     * @param time the upper bound for closing time
-     * @return a list of AttractionDTOs, or an empty list if none are found
-     * @throws MissingDataException if the input time is null
+     * @param time Closing time filter. Must not be null.
+     * @return List of {@link AttractionDTO} that close before the given time.
+     * @throws MissingDataException if time is null.
      */
     List<AttractionDTO> getAttractionByEnding(LocalTime time) {
         if (time == null) {
@@ -206,13 +224,12 @@ public class AttractionService {
     }
 
     /**
-     * Retrieves attractions that open no earlier than the given opening time
-     * and close no later than the given closing time.
+     * Retrieves a list of attractions that open and close within a specified time range.
      *
-     * @param opening minimum allowed opening time (inclusive)
-     * @param ending maximum allowed closing time (inclusive)
-     * @return a list of matching AttractionDTOs, or an empty list if none match
-     * @throws MissingDataException if any time input is null
+     * @param opening Start time filter. Must not be null.
+     * @param ending  End time filter. Must not be null.
+     * @return List of {@link AttractionDTO} within the specified opening and closing times.
+     * @throws MissingDataException if any time parameter is null.
      */
     List<AttractionDTO> getAttractionBetweenOpeningAndEnding(LocalTime opening, LocalTime ending) {
         if (opening == null || ending == null) {
@@ -223,11 +240,11 @@ public class AttractionService {
     }
 
     /**
-     * Retrieves all attractions associated with a specific hotel.
+     * Retrieves a list of attractions associated with a specific hotel.
      *
-     * @param hotelId the ID of the hotel
-     * @return list of AttractionDTOs, or empty if none are found
-     * @throws MissingDataException if the hotel ID is null
+     * @param hotelId ID of the hotel. Must not be null.
+     * @return List of {@link AttractionDTO} belonging to the hotel.
+     * @throws MissingDataException if hotelId is null.
      */
     List<AttractionDTO> getByHotelId(Long hotelId){
         if (hotelId == null){
@@ -238,12 +255,13 @@ public class AttractionService {
     }
 
     /**
-     * Updates an existing attraction based on its ID using non-null fields from the given DTO.
+     * Updates an existing {@link Attraction} entity with the information provided in the DTO.
      *
-     * @param id the ID of the attraction to update
-     * @param dto the DTO containing fields to update
-     * @return the updated Attraction entity
-     * @throws MissingDataException if the attraction is not found or fails validation
+     * @param id  ID of the attraction to update. Must exist in the database.
+     * @param dto {@link AttractionDTO} containing the new values. Fields that are null or empty are ignored.
+     * @return The updated {@link Attraction} entity.
+     * @throws NotFoundInDatabaseException if no attraction with the given ID exists.
+     * @throws MissingDataException        if any field in the updated entity is invalid according to {@link #validateInfo}.
      */
     @Transactional
     Attraction updateAttraction(Long id, AttractionDTO dto) {
@@ -276,10 +294,12 @@ public class AttractionService {
     }
 
     /**
-     * Deletes an attraction if it is not currently active based on current time.
+     * Deletes an {@link Attraction} entity from the database.
+     * Deletion is not allowed if the attraction is currently operating (i.e., current time is between openAt and closeAt).
      *
-     * @param id the ID of the attraction to delete
-     * @throws MissingDataException if the attraction is not found or is currently active
+     * @param id ID of the attraction to delete. Must exist in the database.
+     * @throws NotFoundInDatabaseException if no attraction with the given ID exists.
+     * @throws MissingDataException        if the attraction is currently open and cannot be deleted.
      */
     @Transactional
     public void deleteAttraction(Long id) {

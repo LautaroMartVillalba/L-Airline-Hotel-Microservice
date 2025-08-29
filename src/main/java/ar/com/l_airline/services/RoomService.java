@@ -22,12 +22,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Service class responsible for handling business logic related to {@link ar.com.l_airline.domain.entities.Room}.
- *
- * <p>It provides CRUD methods.</p>
- *
- * <p>Constraints are enforced to maintain room validity based on predefined conditions, and DTOs are
- * used to transfer room data between layers.</p>
+ * Service class responsible for managing {@link Room} entities.
+ * It provides methods for creating, updating, retrieving, and validating rooms.
  */
 @Service
 public class RoomService {
@@ -46,10 +42,10 @@ public class RoomService {
     private static final int MAX_PEOPLE = 4;
 
     /**
-     * Validates a {@link RoomDTO} based on room business constraints.
-     * Throws {@link MissingDataException} if any validation rule is violated.
+     * Validates a {@link RoomDTO} object before creation.
      *
-     * @param room the DTO containing room data to validate
+     * @param room Room data to validate.
+     * @throws MissingDataException if any validation rule fails.
      */
     private void checkIfRoomIsValid(RoomDTO room){
         if (room.getNumberOfBeds() <= MIN_BEDS || room.getNumberOfBeds() > MAX_BEDS){
@@ -74,6 +70,12 @@ public class RoomService {
         }
     }
 
+    /**
+     * Converts a list of {@link Room} entities into a list of {@link RoomDTO}.
+     *
+     * @param rooms List of Room entities.
+     * @return List of RoomDTO objects with mapped properties.
+     */
     public List<RoomDTO> parseFromRoomListToRoomDTOList(List<Room> rooms){
         return rooms.stream().map(room -> {
             List<Long> reservationIds = room.getReservation().stream().map(Reservation::getId).toList();
@@ -95,11 +97,11 @@ public class RoomService {
     }
 
     /**
-     * Creates and saves a new Room entity in the database.
-     * The room is validated before persistence.
+     * Creates a new {@link Room} entity in the database.
      *
-     * @param room the DTO containing room data
-     * @return the created Room entity
+     * @param room Room data transfer object.
+     * @return The created Room entity.
+     * @throws MissingDataException if room validation fails.
      */
     @Transactional
     public Room createRoom(RoomDTO room){
@@ -125,10 +127,11 @@ public class RoomService {
     }
 
     /**
-     * Retrieves a room by its ID and returns a RoomDTO response.
+     * Retrieves a {@link RoomDTO} for a given room ID.
      *
-     * @param id the room ID
-     * @return DTO containing room data
+     * @param id Room ID to search.
+     * @return RoomDTO corresponding to the given ID.
+     * @throws NotFoundInDatabaseException if no room is found.
      */
     public RoomDTO getRoomByIdResponse(Long id){
         Room result = roomRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
@@ -144,20 +147,22 @@ public class RoomService {
     }
 
     /**
-     * Retrieves a Room entity by its ID.
+     * Retrieves a {@link Room} entity by ID.
      *
-     * @param id the room ID
-     * @return the Room entity
+     * @param id Room ID.
+     * @return Room entity corresponding to the given ID.
+     * @throws NotFoundInDatabaseException if no room is found.
      */
     public Room getRoomById(Long id){
         return roomRepository.findById(id).orElseThrow(() -> new NotFoundInDatabaseException("Register not found in the DataBase."));
     }
 
     /**
-     * Returns a list of rooms that match a given number of beds.
+     * Retrieves rooms by number of beds.
      *
-     * @param number number of beds (1-4)
-     * @return list of RoomDTOs
+     * @param number Number of beds.
+     * @return List of RoomDTO matching the number of beds.
+     * @throws MissingDataException if number is invalid.
      */
     public List<RoomDTO> getRoomsByBedsNumber(int number){
         if (number < 1 || number > 4){
@@ -174,10 +179,10 @@ public class RoomService {
     }
 
     /**
-     * Returns rooms filtered by bed type.
+     * Retrieves rooms by bed type.
      *
-     * @param bedsType the bed type
-     * @return list of RoomDTOs
+     * @param bedsType {@link BedsType} to search.
+     * @return List of RoomDTO matching the bed type.
      */
     public List<RoomDTO> getRoomsByBedsTypes(BedsType bedsType){
         List<Room> result = roomRepository.findByBedType(bedsType);
@@ -186,10 +191,11 @@ public class RoomService {
     }
 
     /**
-     * Returns rooms filtered by people capacity.
+     * Retrieves rooms by people capacity.
      *
-     * @param people number of people (1-4)
-     * @return list of RoomDTOs
+     * @param people Number of people the room accommodates.
+     * @return List of RoomDTO matching the people capacity.
+     * @throws MissingDataException if capacity is outside allowed range.
      */
     public List<RoomDTO> getRoomsByPeopleCapacity(int people){
         if (people < 1 || people > 4){
@@ -205,10 +211,11 @@ public class RoomService {
     }
 
     /**
-     * Returns rooms filtered by {@link RoomType}.
+     * Retrieves rooms by room type.
      *
-     * @param roomType the type of room
-     * @return list of RoomDTOs
+     * @param roomType {@link RoomType} to search.
+     * @return List of RoomDTO matching the room type.
+     * @throws MissingDataException if roomType is null.
      */
     public List<RoomDTO> getRoomsByRoomType(RoomType roomType){
         if (roomType == null){
@@ -225,10 +232,11 @@ public class RoomService {
     }
 
     /**
-     * Returns rooms filtered by {@link RoomState}.
+     * Retrieves rooms by room state.
      *
-     * @param state the room state
-     * @return list of RoomDTOs
+     * @param state {@link RoomState} to filter by.
+     * @return List of RoomDTO matching the state.
+     * @throws MissingDataException if state is null.
      */
     public List<RoomDTO> getRoomsByState(RoomState state){
         if (state == null){
@@ -245,12 +253,11 @@ public class RoomService {
     }
 
     /**
-     * Retrieves a list of RoomDTOs associated with a specific hotel ID.
+     * Retrieves rooms belonging to a specific hotel.
      *
-     * @param hotelId the ID of the hotel to filter rooms by
-     * @return a list of RoomDTOs that belong to the specified hotel;
-     *         returns an empty list if no rooms are found
-     * @throws MissingDataException if the provided hotelId is null
+     * @param hotelId Hotel ID.
+     * @return List of RoomDTO for the hotel.
+     * @throws MissingDataException if hotelId is null.
      */
     List<RoomDTO> getByHotelId(Long hotelId){
         if(hotelId == null){
@@ -266,6 +273,14 @@ public class RoomService {
         return parseFromRoomListToRoomDTOList(result);
     }
 
+    /**
+     * Retrieves rooms available between the given dates.
+     *
+     * @param startAt Start date of reservation period.
+     * @param endAt End date of reservation period.
+     * @return List of free RoomDTO objects.
+     * @throws MissingDataException if dates are null or invalid.
+     */
     public List<RoomDTO> getFreeRoomsByScheduleBetween(LocalDate startAt, LocalDate endAt){
         if (startAt == null || endAt == null || startAt.isBefore(LocalDate.now()) || endAt.isBefore(startAt)){
             throw new MissingDataException("Insert correct date, please.");
@@ -275,12 +290,11 @@ public class RoomService {
     }
 
     /**
-     * Retrieves a list of RoomDTOs associated with a specific reservation ID.
+     * Retrieves rooms associated with a specific reservation.
      *
-     * @param reservationId the ID of the reservation to filter rooms by
-     * @return a list of RoomDTOs that are linked to the specified reservation;
-     *         returns an empty list if no rooms are found
-     * @throws MissingDataException if the provided reservationId is null
+     * @param reservationId Reservation ID.
+     * @return List of RoomDTO related to the reservation.
+     * @throws MissingDataException if reservationId is null.
      */
     List<RoomDTO> getByReservationId(Long reservationId){
         if(reservationId == null){
@@ -297,12 +311,12 @@ public class RoomService {
     }
 
     /**
-     * Updates modifiable fields of a room based on the provided DTO.
-     * Handles bed type and number validation consistency.
+     * Updates room information by its ID.
      *
-     * @param id the room ID
-     * @param dto DTO containing the new data
-     * @return the updated Room entity
+     * @param id Room ID to update.
+     * @param dto RoomDTO with updated data.
+     * @return Updated Room entity.
+     * @throws IllegalArgumentException if id or dto are invalid.
      */
     @Transactional
     public Room updateRoomInfoById(Long id, RoomDTO dto){
@@ -343,6 +357,13 @@ public class RoomService {
         return room;
     }
 
+    /**
+     * Changes the state of a room.
+     *
+     * @param roomId Room ID.
+     * @param state New {@link RoomState} for the room.
+     * @throws MissingDataException if parameters are null.
+     */
     @Transactional
     public void changeRoomState(Long roomId, RoomState state){
         if (roomId == null || state == null){
@@ -356,9 +377,10 @@ public class RoomService {
     }
 
     /**
-     * Deletes a room by its ID only if it is currently FREE.
+     * Deletes a room if it is in FREE state.
      *
-     * @param roomId the ID of the room to delete
+     * @param roomId Room ID.
+     * @throws ConflictStateException if room is not free.
      */
     @Transactional
     public void deleteRoom(Long roomId){

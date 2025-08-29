@@ -6,12 +6,23 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 /**
- * Represents a person entity in the system.
+ * Represents a Person entity within the application.
  * <p>
- * A person may be associated with a reservation and contains basic personal
- * information such as name, email, age, identification (DNI), and phone number.
+ * This class maps to the "entity_person" table in the database.
+ * It contains personal information of a client, such as email,
+ * identification number (DNI), name, age, contact number, and reservation history.
+ * </p>
  * <p>
- * Mapped to the database table "entity_person".
+ * Relationships:
+ * <ul>
+ *     <li>{@link Reservation}: One-to-One relationship. Each person can have one reservation.</li>
+ *     <li>{@link Address}: One-to-One relationship. Each person can have a unique address.</li>
+ * </ul>
+ * </p>
+ * <p>
+ * The email, dni, and cellPhone fields are unique to ensure proper identification and contact.
+ * The numberOfReservations field tracks the total reservations made by the person.
+ * </p>
  */
 @Entity
 @Table(name = "entity_person")

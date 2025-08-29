@@ -14,8 +14,9 @@ import java.time.LocalTime;
 import java.util.List;
 
 /**
- * Service class responsible for handling business logic related to {@link ar.com.l_airline.domain.entities.Benefit}.
- * Provides methods to create, validate, transform, and retrieve Benefit data.
+ * Service layer for managing {@link Benefit} entities.
+ * Provides methods to create, retrieve, update, and delete benefits,
+ * as well as to query them by different attributes such as name, description, opening/closing times, or hotel.
  */
 @Service
 public class BenefitService {
@@ -28,6 +29,15 @@ public class BenefitService {
         this.hotelRepository = hotelRepository;
     }
 
+    /**
+     * Validates the mandatory fields of a {@link Benefit}.
+     *
+     * @param name        Name of the benefit.
+     * @param description Description of the benefit.
+     * @param openAt      Opening time.
+     * @param closeAt     Closing time.
+     * @throws MissingDataException if any of the parameters are invalid or missing.
+     */
     void validateInfo(String name, String description, LocalTime openAt, LocalTime closeAt){
 
         if (name.isBlank()){
@@ -45,10 +55,10 @@ public class BenefitService {
     }
 
     /**
-     * Maps a list of {@link Benefit} entities to a list of {@link BenefitDTO} objects.
+     * Converts a list of {@link Benefit} entities into a list of {@link BenefitDTO}.
      *
-     * @param list the list of Benefit entities to transform
-     * @return a list of BenefitDTOs, or an empty list if no elements are found
+     * @param list List of {@link Benefit} entities.
+     * @return List of {@link BenefitDTO}.
      */
     public List<BenefitDTO> parseBenefitListToBenefitDTOList (List<Benefit> list){
         return list.stream().map(benefit -> {
@@ -64,11 +74,12 @@ public class BenefitService {
     }
 
     /**
-     * Creates and persists a new Benefit entity using the data provided in the DTO.
+     * Creates a new {@link Benefit} entity in the database.
      *
-     * @param dto the BenefitDTO with data to create the benefit
-     * @return the persisted Benefit entity
-     * @throws MissingDataException if validation fails
+     * @param dto Data transfer object containing the information for the benefit.
+     * @return The created {@link Benefit} entity.
+     * @throws NotFoundInDatabaseException if the associated hotel cannot be found.
+     * @throws MissingDataException        if required fields are missing.
      */
     @Transactional
     public Benefit createBenefit(BenefitDTO dto){
@@ -88,11 +99,12 @@ public class BenefitService {
     }
 
     /**
-     * Retrieves a Benefit by its ID and maps it to a BenefitDTO for external use.
+     * Retrieves a {@link BenefitDTO} by its ID.
      *
-     * @param id the unique identifier of the benefit
-     * @return the BenefitDTO representation of the benefit
-     * @throws MissingDataException if the ID is invalid or the benefit does not exist
+     * @param id ID of the benefit.
+     * @return {@link BenefitDTO} representing the benefit.
+     * @throws MissingDataException        if ID is invalid.
+     * @throws NotFoundInDatabaseException if the benefit cannot be found.
      */
     public BenefitDTO getBenefitByIdResponse(Long id){
         if (id == 0){
@@ -108,13 +120,15 @@ public class BenefitService {
                 .closeAt(result.getCloseAt())
                 .hotelId(result.getHotel().getId()).build();
     }
+
     /**
-    * Retrieves a Benefit entity by its unique identifier.
-    *
-    * @param id the ID of the Benefit to retrieve
-    * @return the Benefit entity with the given ID
-    * @throws MissingDataException if the provided ID is zero
-    */
+     * Retrieves a {@link Benefit} entity by its ID.
+     *
+     * @param id ID of the benefit.
+     * @return {@link Benefit} entity.
+     * @throws MissingDataException        if ID is invalid.
+     * @throws NotFoundInDatabaseException if the benefit cannot be found.
+     */
     public Benefit getBenefitByIdObject(Long id) {
         if (id == 0 || id < 1) {
             throw new MissingDataException("Insert a valid id number.");
@@ -124,11 +138,11 @@ public class BenefitService {
     }
 
     /**
-     * Retrieves a list of BenefitDTOs whose name contains the specified string.
+     * Finds benefits whose name contains the given string.
      *
-     * @param name a partial or full name to search for
-     * @return a list of matching BenefitDTOs, or an empty list if none found
-     * @throws MissingDataException if the provided name is blank
+     * @param name Name filter.
+     * @return List of {@link BenefitDTO}.
+     * @throws MissingDataException if name is empty.
      */
     public List<BenefitDTO> getBenefitByName(String name){
         if (name.isBlank()){
@@ -139,11 +153,11 @@ public class BenefitService {
     }
 
     /**
-     * Retrieves a list of BenefitDTOs whose description contains the specified string.
+     * Finds benefits whose description contains the given string.
      *
-     * @param desc a partial or full description to search for
-     * @return a list of matching BenefitDTOs, or an empty list if none found
-     * @throws MissingDataException if the provided description is blank
+     * @param desc Description filter.
+     * @return List of {@link BenefitDTO}.
+     * @throws MissingDataException if description is empty.
      */
     public List<BenefitDTO> getBenefitByDescription(String desc){
         if (desc.isBlank()){
@@ -154,11 +168,11 @@ public class BenefitService {
     }
 
     /**
-     * Retrieves a list of BenefitDTOs with opening times greater than the specified time.
+     * Finds benefits that open after the given time.
      *
-     * @param opening the minimum opening time (exclusive)
-     * @return a list of BenefitDTOs with later opening times
-     * @throws MissingDataException if the provided opening time is null
+     * @param opening Opening time filter.
+     * @return List of {@link BenefitDTO}.
+     * @throws MissingDataException if opening time is null.
      */
     public List<BenefitDTO> getBenefitByOpening(LocalTime opening){
         if (opening == null){
@@ -169,11 +183,11 @@ public class BenefitService {
     }
 
     /**
-     * Retrieves a list of BenefitDTOs with closing times less than the specified time.
+     * Finds benefits that close before the given time.
      *
-     * @param ending the maximum closing time (exclusive)
-     * @return a list of BenefitDTOs with earlier closing times
-     * @throws MissingDataException if the provided ending time is null
+     * @param ending Closing time filter.
+     * @return List of {@link BenefitDTO}.
+     * @throws MissingDataException if closing time is null.
      */
     public List<BenefitDTO> getBenefitByEnding(LocalTime ending){
         if (ending == null){
@@ -184,12 +198,12 @@ public class BenefitService {
     }
 
     /**
-     * Retrieves a list of BenefitDTOs whose opening and closing times fall within a specific range.
+     * Finds benefits whose opening and closing times are within the given range.
      *
-     * @param open the minimum opening time (inclusive)
-     * @param close the maximum closing time (inclusive)
-     * @return a list of BenefitDTOs within the specified time range
-     * @throws MissingDataException if either open or close time is null
+     * @param open  Minimum opening time.
+     * @param close Maximum closing time.
+     * @return List of {@link BenefitDTO}.
+     * @throws MissingDataException if any of the parameters are null.
      */
     public List<BenefitDTO> getByOpenBetween(LocalTime open, LocalTime close){
         if (open == null || close == null){
@@ -200,11 +214,11 @@ public class BenefitService {
     }
 
     /**
-     * Retrieves a list of BenefitDTOs associated with a specific hotel ID.
+     * Retrieves all benefits associated with a specific hotel.
      *
-     * @param hotelId the ID of the hotel whose benefits are to be retrieved
-     * @return a list of BenefitDTOs linked to the given hotel
-     * @throws MissingDataException if the hotel ID is null
+     * @param hotelId ID of the hotel.
+     * @return List of {@link BenefitDTO}.
+     * @throws MissingDataException if hotelId is null.
      */
     public List<BenefitDTO> getByHotelId(Long hotelId){
         if (hotelId == null){
@@ -215,14 +229,13 @@ public class BenefitService {
     }
 
     /**
-     * Updates an existing Benefit entity with data provided in the BenefitDTO.
-     * Only non-blank fields in the DTO are used to update the entity.
-     * The updated entity is validated before being saved.
+     * Updates an existing {@link Benefit} entity with the provided data.
      *
-     * @param id the ID of the Benefit to update
-     * @param dto the DTO containing the updated data
-     * @return the updated Benefit entity
-     * @throws MissingDataException if the benefit does not exist or validation fails
+     * @param id  ID of the benefit to update.
+     * @param dto {@link BenefitDTO} containing new values.
+     * @return Updated {@link Benefit} entity.
+     * @throws NotFoundInDatabaseException if the benefit cannot be found.
+     * @throws MissingDataException        if updated data is invalid.
      */
     @Transactional
     public Benefit updateBenefit(Long id, BenefitDTO dto){
@@ -251,12 +264,12 @@ public class BenefitService {
     }
 
     /**
-     * Deletes a Benefit entity by its ID.
-     * Deletion is not allowed if the benefit is currently active
-     * (i.e., the current time is between its opening and closing times).
+     * Deletes a {@link Benefit} entity by ID.
+     * Deletion is not allowed if the benefit is currently operating.
      *
-     * @param id the ID of the Benefit to delete
-     * @throws MissingDataException if the benefit is active or does not exist
+     * @param id ID of the benefit to delete.
+     * @throws NotFoundInDatabaseException if the benefit cannot be found.
+     * @throws MissingDataException        if the benefit is currently open.
      */
     @Transactional
     public void deleteBenefitById(Long id){

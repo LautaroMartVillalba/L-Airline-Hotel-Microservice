@@ -3,14 +3,22 @@ package ar.com.l_airline.domain.dto;
 import ar.com.l_airline.domain.enums.BedsType;
 import ar.com.l_airline.domain.enums.RoomState;
 import ar.com.l_airline.domain.enums.RoomType;
-import ar.com.l_airline.exceptionHandler.custom_exceptions.MissingDataException;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import ar.com.l_airline.domain.entities.Room;
 
+/**
+ * Data Transfer Object for {@link Room}.
+ * <p>
+ * Used to transfer room data between layers without exposing the entity directly.
+ * Contains basic room information, enumerated types for bed, room type, and state,
+ * and references to associated hotel, reservations, and booking periods.
+ * </p>
+ */
 @AllArgsConstructor
 @Getter
 @Setter
